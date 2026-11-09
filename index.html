@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Greek Reader</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Greek Reader">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1B5FA6">
+<style>
+/* Layout: one narrow reading column; sentences in rows with a play button, words tappable, a bottom sheet for the tapped word. */
+:root{
+  --bg:#F3F6FA; --surface:#FFFFFF; --fg:#13202E; --muted:#586879; --line:#D5DDE7;
+  --accent:#1B5FA6; --accent-fg:#FFFFFF; --accent-soft:#E4EEF9;
+  --saved:#E4EDC6; --saved-line:#6F8F26; --danger:#A93A25;
+  --shadow:0 -8px 30px rgba(19,32,46,.16);
+  --font-ui:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-gr:"Iowan Old Style","Palatino","Georgia","Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1722; --surface:#172231; --fg:#E7EEF6; --muted:#93A4B6; --line:#2A3A4D;
+    --accent:#6FA8E8; --accent-fg:#0B1522; --accent-soft:#1B2E45;
+    --saved:#2E3C18; --saved-line:#A5C85A; --danger:#E58770;
+    --shadow:0 -8px 30px rgba(0,0,0,.5); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1722; --surface:#172231; --fg:#E7EEF6; --muted:#93A4B6; --line:#2A3A4D;
+  --accent:#6FA8E8; --accent-fg:#0B1522; --accent-soft:#1B2E45;
+  --saved:#2E3C18; --saved-line:#A5C85A; --danger:#E58770;
+  --shadow:0 -8px 30px rgba(0,0,0,.5); color-scheme:dark;
+}
+[hidden]{display:none!important}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-ui); font-size:16px; line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:14px 48px;
+}
+body.sheet-open{padding-bottom:300px}
+.app{max-width:720px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-size:1.15rem;font-weight:600;margin:0;letter-spacing:.01em}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:12px}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tab{border:0;background:none;padding:6px 14px;border-radius:8px;font-weight:500;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-fg)}
+.tab .n{font-variant-numeric:tabular-nums;margin-left:4px;opacity:.85}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:.92rem}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+.thead h2{font-family:var(--font-gr);font-weight:600;font-size:1.5rem;line-height:1.25;margin:0 0 4px;text-wrap:balance}
+.thead p{margin:0;color:var(--muted);font-size:.92rem;max-width:62ch}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 6px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.danger{color:var(--danger)}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.drill{margin-top:6px}
+.btn svg{width:16px;height:16px;fill:currentColor;flex:none}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:8px 11px;font-size:.9rem;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.note{font-size:.88rem;color:var(--muted);margin:6px 0 0;max-width:62ch}
+
+.list{margin-top:10px}
+.s{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;padding:12px 8px;border-bottom:1px solid var(--line);border-radius:10px}
+.s.playing{background:var(--accent-soft)}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
+.icon-btn svg{width:16px;height:16px;fill:var(--accent)}
+.sbody{min-width:0}
+.line{font-family:var(--font-gr);font-size:1.28rem;line-height:1.75;margin:0;overflow-wrap:anywhere}
+.w{font:inherit;color:inherit;background:none;border:0;border-bottom:1.5px dotted var(--muted);padding:1px 1px;margin:0;border-radius:3px;-webkit-tap-highlight-color:transparent}
+.w.saved{background:var(--saved);border-bottom:1.5px solid var(--saved-line)}
+.w.active{background:var(--accent);color:var(--accent-fg);border-bottom-color:var(--accent)}
+.tr{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+.linkbtn{border:0;background:none;color:var(--accent);padding:4px 0;font-size:.9rem;font-weight:500}
+
+.editor textarea{width:100%;min-height:160px;resize:vertical;font-family:var(--font-gr);font-size:1.1rem;line-height:1.6;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.editor .row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);box-shadow:var(--shadow);
+  padding:14px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet-in{max-width:720px;margin:0 auto}
+.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.form{font-family:var(--font-gr);font-size:1.6rem;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.lemma{color:var(--muted);font-size:.9rem;margin-top:2px}
+.en{font-size:1.1rem;font-weight:500;margin:10px 0 2px}
+.gram{color:var(--muted);font-size:.92rem;margin:0}
+.err{color:var(--danger);font-size:.95rem;margin:10px 0 0}
+.ctx{font-family:var(--font-gr);font-size:1rem;line-height:1.6;margin:10px 0 0;padding:8px 10px;background:var(--bg);border-radius:8px}
+.ctx mark{background:var(--saved);color:inherit;border-radius:3px;padding:0 2px}
+.actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+
+.wh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 8px}
+.wh h2{margin:0;font-size:1.15rem;font-weight:600}
+.wh .count{color:var(--muted);font-variant-numeric:tabular-nums}
+.empty{padding:28px 14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center;margin-top:14px}
+.wrow{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;padding:12px 4px;border-bottom:1px solid var(--line)}
+.wrow .lm{font-family:var(--font-gr);font-weight:600;font-size:1.1rem}
+.wrow .mean{font-size:.95rem}
+.wrow .ex{font-family:var(--font-gr);font-size:.88rem;color:var(--muted);margin-top:2px}
+.wrow .meta{min-width:0}
+.badge{display:inline-block;margin-left:8px;font-family:var(--font-ui);font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 7px;vertical-align:middle}
+.status{margin:10px 0 0;font-size:.88rem;color:var(--muted)}
+.manual{display:grid;gap:8px;margin-top:10px}
+.manual input{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);width:100%}
+@media (prefers-reduced-motion: no-preference){
+  .sheet{animation:up .18s ease-out}
+  @keyframes up{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>Greek Reader</h1>
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tabRead" role="tab" aria-selected="true">Read</button>
+      <button class="tab" id="tabWords" role="tab" aria-selected="false">Words<span class="n" id="wordCount">0</span></button>
+    </div>
+  </header>
+
+  <main id="readView">
+    <div class="chips" id="chips"></div>
+    <section class="editor" id="editor" hidden>
+      <textarea id="customInput" lang="el" placeholder="Paste Greek text here (a few sentences works best)"></textarea>
+      <div class="row">
+        <button class="btn primary" id="useCustom">Use this text</button>
+      </div>
+      <p class="note">Tap a word in your own text and type its meaning to save it. The built-in texts have meanings ready.</p>
+    </section>
+    <section id="reader">
+      <div class="thead">
+        <h2 id="tTitle"></h2>
+        <p id="tFocus"></p>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="playAll"></button>
+        <div class="seg" id="rateSeg" role="group" aria-label="Speed">
+          <button data-r="0.7">0.7×</button><button data-r="0.85">0.85×</button><button data-r="1">1×</button>
+        </div>
+        <button class="btn" id="trToggle" aria-pressed="false">Translations</button>
+        <button class="btn" id="editCustom" hidden>Edit text</button>
+      </div>
+      <p class="note" id="audioNote" hidden></p>
+      <div class="drill">
+        <p class="note">Listen-and-repeat drill, in the style of Glossika: you hear the English sentence, then the Greek several times, with a pause each time for you to say it aloud.</p>
+        <div class="controls">
+          <button class="btn" id="drillBtn"></button>
+          <div class="seg" id="repSeg" role="group" aria-label="Repeats">
+            <button data-n="2">2×</button><button data-n="3">3×</button><button data-n="5">5×</button>
+          </div>
+          <button class="btn" id="enFirstBtn" aria-pressed="true">English first</button>
+          <button class="btn" id="shortBtn" aria-pressed="true">Short to long</button>
+        </div>
+        <p class="note" id="drillStatus" hidden></p>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+  </main>
+
+  <main id="wordsView" hidden>
+    <div class="wh">
+      <h2>Saved words</h2>
+      <span class="count" id="wCountText"></span>
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="expNew">Export new for Anki</button>
+      <button class="btn" id="expAll">Export all</button>
+      <button class="btn" id="copyAll">Copy as text</button>
+    </div>
+    <p class="note" id="expNote">In Anki choose File, then Import, and pick the exported .txt file (Anki 2.1.54 or newer reads its settings automatically). The front of each card is the Greek word. The back has the meaning, the grammar of the form you tapped, and your example sentence.</p>
+    <p class="status" id="storeNote" hidden></p>
+    <div id="wlist"></div>
+  </main>
+</div>
+
+<aside class="sheet" id="sheet" hidden aria-live="polite"></aside>
+
+<script>
+/*DATA*/
+const TEXTS = [
+  {
+    id: "market", title: "Το Σάββατο στη λαϊκή", level: "B1",
+    focus: "Everyday verbs in the present and the aorist (simple past): πηγαίνω, αγόρασα, γύρισα, έφτιαξα, κάλεσα.",
+    sentences: [
+      { el: "Κάθε Σάββατο το πρωί πηγαίνω στη λαϊκή αγορά της γειτονιάς μου.", en: "Every Saturday morning I go to my neighborhood's farmers' market." },
+      { el: "Εκεί βρίσκω φρέσκα φρούτα και λαχανικά σε πολύ καλές τιμές.", en: "I find fresh fruit and vegetables there at very good prices." },
+      { el: "Ο μανάβης με γνωρίζει καλά και πάντα μου δίνει κάτι για δώρο.", en: "The greengrocer knows me well and always gives me something as a gift." },
+      { el: "Σήμερα αγόρασα πορτοκάλια, ντομάτες και ένα μεγάλο καρπούζι, γιατί ο καιρός ήταν πολύ ζεστός.", en: "Today I bought oranges, tomatoes and a big watermelon, because the weather was very hot." },
+      { el: "Όταν γύρισα σπίτι, έφτιαξα μια σαλάτα και κάλεσα μια φίλη να φάμε μαζί.", en: "When I got home, I made a salad and invited a friend to eat together." }
+    ]
+  },
+  {
+    id: "plans", title: "Αλλάζουμε σχέδια", level: "B1",
+    focus: "Hypotheticals and subjunctive: αν + imperfect, θα + imperfect (would), να + aorist subjunctive.",
+    sentences: [
+      { el: "Είχαμε σχεδιάσει να πάμε εκδρομή στο Πήλιο, αλλά η πρόγνωση του καιρού ήταν άσχημη.", en: "We had planned to go on a trip to Pelion, but the weather forecast was bad." },
+      { el: "Αν έβρεχε πολύ, δεν θα μπορούσαμε να περπατήσουμε στα μονοπάτια.", en: "If it rained a lot, we wouldn't be able to walk on the trails." },
+      { el: "Έτσι αποφασίσαμε να μείνουμε στην πόλη και να επισκεφτούμε ένα μουσείο.", en: "So we decided to stay in the city and visit a museum." },
+      { el: "Στο τέλος περάσαμε πολύ ωραία, παρόλο που δεν κάναμε αυτό που είχαμε σχεδιάσει.", en: "In the end we had a very nice time, even though we didn't do what we had planned." }
+    ]
+  },
+  {
+    id: "landlord", title: "Μήνυμα από τον ιδιοκτήτη", level: "B1",
+    focus: "Reported speech with ότι, the future with θα, and the polite conditional θα προτιμούσα.",
+    sentences: [
+      { el: "Σήμερα το πρωί πήρα ένα μήνυμα από τον ιδιοκτήτη του διαμερίσματος.", en: "This morning I got a message from the apartment's landlord." },
+      { el: "Μου έγραψε ότι ο υδραυλικός θα έρθει την Πέμπτη για να φτιάξει τη βρύση της κουζίνας.", en: "He wrote to me that the plumber will come on Thursday to fix the kitchen tap." },
+      { el: "Δυστυχώς, εκείνη την ώρα έχω μια σημαντική συνάντηση και δεν μπορώ να μείνω σπίτι.", en: "Unfortunately, I have an important meeting at that time and I can't stay home." },
+      { el: "Του απάντησα ότι θα προτιμούσα να έρθει το απόγευμα, αν είναι δυνατόν.", en: "I replied to him that I would prefer him to come in the afternoon, if possible." }
+    ]
+  }
+];
+
+/* key = word as it appears in the text, lowercase. value = [dictionary form, English, grammar of this form] */
+const GLOSS = {
+  "κάθε":["κάθε","every, each","Never changes form. 'κάθε μέρα' = every day"],
+  "σάββατο":["το Σάββατο","Saturday","Neuter noun. 'κάθε Σάββατο' = every Saturday"],
+  "το":["ο, η, το","the","Neuter singular article"],
+  "πρωί":["το πρωί","morning","'το πρωί' = in the morning"],
+  "πηγαίνω":["πηγαίνω","I go","Present, 1st person singular. Also written πάω"],
+  "στη":["σε","to, at, in (+ the)","Contraction of σε + τη(ν): to the (feminine)"],
+  "λαϊκή":["η λαϊκή αγορά","farmers' market","Feminine adjective, lit. 'of the people'. The phrase means farmers' market"],
+  "αγορά":["η αγορά","market; purchase","Feminine noun, accusative singular after σε"],
+  "της":["ο, η, το","of the","Feminine genitive article"],
+  "γειτονιάς":["η γειτονιά","neighborhood","Genitive singular: of the neighborhood"],
+  "μου":["εγώ","my; to me","Weak pronoun: 'my' after a noun, 'to me' before a verb"],
+  "εκεί":["εκεί","there",""],
+  "βρίσκω":["βρίσκω","I find","Present, 1st person singular"],
+  "φρέσκα":["φρέσκος","fresh","Neuter plural, agrees with φρούτα"],
+  "φρούτα":["το φρούτο","fruit","Neuter plural"],
+  "και":["και","and",""],
+  "λαχανικά":["το λαχανικό","vegetable","Neuter plural"],
+  "σε":["σε","in, at, to","Preposition, followed by the accusative"],
+  "πολύ":["πολύ","very; a lot","Means 'very' before an adjective"],
+  "καλές":["καλός","good","Feminine plural, agrees with τιμές"],
+  "τιμές":["η τιμή","price","Feminine plural. Also means 'honor'"],
+  "ο":["ο, η, το","the","Masculine nominative singular article"],
+  "μανάβης":["ο μανάβης","greengrocer","Masculine noun, nominative singular"],
+  "με":["εγώ","me","Weak accusative pronoun, placed before the verb"],
+  "γνωρίζει":["γνωρίζω","he/she knows","Present, 3rd person singular. 'To know' a person or a fact"],
+  "καλά":["καλά","well","Adverb"],
+  "πάντα":["πάντα","always",""],
+  "δίνει":["δίνω","he/she gives","Present, 3rd person singular. 'μου δίνει' = gives me"],
+  "κάτι":["κάτι","something",""],
+  "για":["για","for","'για δώρο' = as a gift. 'για να' = in order to"],
+  "δώρο":["το δώρο","gift","Neuter noun, accusative singular"],
+  "σήμερα":["σήμερα","today",""],
+  "αγόρασα":["αγοράζω","I bought","Aorist (simple past), 1st person singular"],
+  "πορτοκάλια":["το πορτοκάλι","orange","Neuter plural"],
+  "ντομάτες":["η ντομάτα","tomato","Feminine plural"],
+  "ένα":["ένας, μία, ένα","a, one","Neuter, agrees with the noun"],
+  "μεγάλο":["μεγάλος","big, large","Neuter singular, agrees with καρπούζι"],
+  "καρπούζι":["το καρπούζι","watermelon","Neuter noun"],
+  "γιατί":["γιατί","because; why","'Because' in a statement, 'why' in a question"],
+  "καιρός":["ο καιρός","weather; time","Masculine noun, nominative singular"],
+  "ήταν":["είμαι","was, were","Imperfect of 'to be', 3rd person"],
+  "ζεστός":["ζεστός","hot, warm","Masculine, agrees with καιρός"],
+  "όταν":["όταν","when","'When' joining two events (not a question)"],
+  "γύρισα":["γυρίζω","I came back; I turned","Aorist, 1st person singular. 'Γύρισα σπίτι' = I got home"],
+  "σπίτι":["το σπίτι","house, home","No preposition after γυρίζω: 'γύρισα σπίτι'"],
+  "έφτιαξα":["φτιάχνω","I made","Aorist, 1st person singular"],
+  "μια":["ένας, μία, ένα","a, one","Feminine, short form of μία"],
+  "σαλάτα":["η σαλάτα","salad","Feminine noun, accusative singular"],
+  "κάλεσα":["καλώ","I invited; I called","Aorist, 1st person singular"],
+  "φίλη":["η φίλη","friend (female)","Feminine noun, accusative singular"],
+  "να":["να","to; so that","Particle that introduces the subjunctive"],
+  "φάμε":["τρώω","(that) we eat","Aorist subjunctive, 1st person plural. Irregular aorist stem φα-"],
+  "μαζί":["μαζί","together",""],
+
+  "είχαμε":["έχω","we had","Imperfect, 1st person plural. With σχεδιάσει it means 'we had planned'"],
+  "σχεδιάσει":["σχεδιάζω","(had) planned","Fixed form used after έχω / είχα to build perfect tenses"],
+  "πάμε":["πηγαίνω","(that) we go","Aorist subjunctive, 1st person plural, of πάω"],
+  "εκδρομή":["η εκδρομή","trip, excursion","Feminine noun, accusative. 'πάμε εκδρομή' = go on a trip"],
+  "στο":["σε","to, at, in (+ the)","Contraction of σε + το: to the (neuter)"],
+  "πήλιο":["το Πήλιο","Pelion","A mountain in Thessaly, popular for hiking"],
+  "αλλά":["αλλά","but",""],
+  "η":["ο, η, το","the","Feminine nominative singular article"],
+  "πρόγνωση":["η πρόγνωση","forecast","Feminine noun, nominative singular"],
+  "του":["ο, η, το","of the; of him, to him","Genitive article (masc./neut.), or the weak pronoun 'to him' before a verb"],
+  "καιρού":["ο καιρός","weather","Genitive singular: of the weather"],
+  "άσχημη":["άσχημος","bad, ugly","Feminine, agrees with πρόγνωση"],
+  "αν":["αν","if","With the imperfect it describes a hypothetical situation"],
+  "έβρεχε":["βρέχει","it rained, it was raining","Imperfect, 3rd person singular (impersonal)"],
+  "δεν":["δεν","not","Negation placed before the verb"],
+  "θα":["θα","will; would","Future particle. Before an imperfect it means 'would'"],
+  "μπορούσαμε":["μπορώ","we could","Imperfect, 1st person plural. 'θα μπορούσαμε' = we would be able"],
+  "περπατήσουμε":["περπατώ","(that) we walk","Aorist subjunctive, 1st person plural, after να"],
+  "στα":["σε","to, at, in (+ the)","Contraction of σε + τα: in the (neuter plural)"],
+  "μονοπάτια":["το μονοπάτι","path, trail","Neuter plural"],
+  "έτσι":["έτσι","so, thus","At the start of a sentence: 'so' / 'that's why'"],
+  "αποφασίσαμε":["αποφασίζω","we decided","Aorist, 1st person plural"],
+  "μείνουμε":["μένω","(that) we stay","Aorist subjunctive, 1st person plural, after να"],
+  "στην":["σε","to, at, in (+ the)","Contraction of σε + την: in the (feminine)"],
+  "πόλη":["η πόλη","city","Feminine noun, accusative singular"],
+  "επισκεφτούμε":["επισκέπτομαι","(that) we visit","Aorist subjunctive, 1st person plural. Also written επισκεφθούμε"],
+  "μουσείο":["το μουσείο","museum","Neuter noun, accusative singular"],
+  "τέλος":["το τέλος","end","'στο τέλος' = in the end"],
+  "περάσαμε":["περνάω","we spent; we passed","Aorist, 1st person plural. 'Περάσαμε ωραία' = we had a good time"],
+  "ωραία":["ωραία","nicely, great","Adverb here. Also the neuter plural of ωραίος"],
+  "παρόλο":["παρόλο που","although","Always used together with που"],
+  "που":["που","that; which; who","Relative word. With παρόλο it means 'although'"],
+  "κάναμε":["κάνω","we did","Imperfect, 1st person plural"],
+  "αυτό":["αυτός","this, that","Neuter pronoun. 'αυτό που' = the thing that"],
+
+  "πήρα":["παίρνω","I took; I got","Aorist, 1st person singular. 'Πήρα μήνυμα' = I got a message"],
+  "μήνυμα":["το μήνυμα","message","Neuter noun, accusative singular"],
+  "από":["από","from",""],
+  "τον":["ο, η, το","the","Masculine accusative article, used after prepositions such as από"],
+  "ιδιοκτήτη":["ο ιδιοκτήτης","owner, landlord","Masculine noun, accusative singular"],
+  "διαμερίσματος":["το διαμέρισμα","apartment","Genitive singular: of the apartment"],
+  "έγραψε":["γράφω","he/she wrote","Aorist, 3rd person singular"],
+  "ότι":["ότι","that","Conjunction after verbs of saying and thinking"],
+  "υδραυλικός":["ο υδραυλικός","plumber","Masculine noun, nominative singular"],
+  "έρθει":["έρχομαι","(that) he/she comes","Aorist subjunctive, 3rd person singular. 'θα έρθει' = will come"],
+  "την":["ο, η, το","the","Feminine accusative article"],
+  "πέμπτη":["η Πέμπτη","Thursday","'την Πέμπτη' = on Thursday"],
+  "φτιάξει":["φτιάχνω","(that) he/she fixes","Aorist subjunctive, 3rd person singular. 'για να φτιάξει' = in order to fix"],
+  "τη":["ο, η, το","the","Feminine accusative article, short form before a consonant"],
+  "βρύση":["η βρύση","tap, faucet","Feminine noun, accusative singular"],
+  "κουζίνας":["η κουζίνα","kitchen","Genitive singular: of the kitchen"],
+  "δυστυχώς":["δυστυχώς","unfortunately",""],
+  "εκείνη":["εκείνος","that","Feminine, agrees with ώρα"],
+  "ώρα":["η ώρα","hour; time","'εκείνη την ώρα' = at that time"],
+  "έχω":["έχω","I have","Present, 1st person singular"],
+  "σημαντική":["σημαντικός","important","Feminine, agrees with συνάντηση"],
+  "συνάντηση":["η συνάντηση","meeting","Feminine noun, accusative singular"],
+  "μπορώ":["μπορώ","I can","Present, 1st person singular. Followed by να + subjunctive"],
+  "μείνω":["μένω","(that) I stay","Aorist subjunctive, 1st person singular, after να"],
+  "απάντησα":["απαντώ","I answered","Aorist, 1st person singular. 'Του απάντησα' = I answered him"],
+  "προτιμούσα":["προτιμώ","I would prefer","Imperfect, 1st person singular. 'Θα προτιμούσα' = I would prefer (polite)"],
+  "απόγευμα":["το απόγευμα","afternoon","'το απόγευμα' = in the afternoon"],
+  "είναι":["είμαι","he/she/it is","Present, 3rd person singular"],
+  "δυνατόν":["δυνατός","possible","Neuter singular. 'Αν είναι δυνατόν' = if possible"]
+};
+/*ENDDATA*/
+
+(function(){
+"use strict";
+var $ = function(s){ return document.querySelector(s); };
+function el(tag, cls, txt){ var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function lc(s){ return s.normalize("NFC").toLocaleLowerCase("el"); }
+var WORD = /[\p{L}\p{M}]+/gu;
+function tokenize(str){
+  var out = [], last = 0, m;
+  WORD.lastIndex = 0;
+  while ((m = WORD.exec(str))) {
+    if (m.index > last) out.push({p: str.slice(last, m.index)});
+    out.push({w: m[0]});
+    last = m.index + m[0].length;
+  }
+  if (last < str.length) out.push({p: str.slice(last)});
+  return out;
+}
+function hash(s){
+  var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (var i = 0; i < s.length; i++) { var ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+function wid(lemma){ return "w_" + hash(lc(lemma)); }
+var ls = {
+  get: function(k, d){ try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
+  set: function(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+};
+var ICON = {
+  play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>',
+  stop: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg>',
+  close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.3 2l4.7 4.7L12.7 2 14 3.3 9.3 8l4.7 4.7-1.3 1.3L8 9.3 3.3 14 2 12.7 6.7 8 2 3.3z"/></svg>'
+};
+
+/* ---------- state ---------- */
+var cur = 0;                 // index into TEXTS, or -1 for the pasted text
+var custom = null;           // {title, sentences:[{el, en}]}
+var editing = false;
+var showTr = ls.get("gr.tr", "0") === "1";
+var rate = parseFloat(ls.get("gr.rate", "0.85")) || 0.85;
+var words = new Map();
+var formSet = new Set();
+var panel = null, reqId = 0;
+var sampleFn = null, col = null, storeState = "loading";
+var voice = null, playToken = 0, playingIdx = -1, playingAll = false;
+var drilling = false;
+var reps = parseInt(ls.get("gr.reps", "3"), 10) || 3;
+var enFirst = ls.get("gr.enfirst", "1") === "1";
+var shortFirst = ls.get("gr.short", "1") === "1";
+
+function getText(){ return cur >= 0 ? TEXTS[cur] : custom; }
+
+/* ---------- audio ---------- */
+function pickVoice(){
+  if (!("speechSynthesis" in window)) { voice = null; return; }
+  var vs = window.speechSynthesis.getVoices();
+  voice = null;
+  for (var i = 0; i < vs.length; i++) { if (/^el([-_]|$)/i.test(vs[i].lang)) { voice = vs[i]; break; } }
+}
+function audioNote(){
+  var n = $("#audioNote");
+  var has = "speechSynthesis" in window;
+  if (!has) { n.textContent = "This view cannot play speech. Open the page in a browser or the Claude app to hear the text."; n.hidden = false; }
+  else if (!voice) { n.textContent = "No Greek voice was found on this device, so audio may not play or may sound wrong. You can add a Greek voice in your device's speech settings."; n.hidden = false; }
+  else n.hidden = true;
+}
+function say(text, onDone, opts){
+  if (!("speechSynthesis" in window)) { if (onDone) onDone(true); return; }
+  var synth = window.speechSynthesis;
+  synth.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  var en = opts && opts.english;
+  u.lang = en ? "en-US" : "el-GR";
+  if (voice && !en) u.voice = voice;
+  u.rate = en ? 1 : rate;
+  u.onend = function(){ if (onDone) onDone(false); };
+  u.onerror = function(){ if (onDone) onDone(true); };
+  setTimeout(function(){ synth.speak(u); }, 40);
+}
+function markPlaying(i){
+  playingIdx = i;
+  var rows = document.querySelectorAll(".s");
+  for (var k = 0; k < rows.length; k++) rows[k].classList.toggle("playing", k === i);
+}
+function updatePlayAll(){
+  var b = $("#playAll");
+  b.innerHTML = (playingAll ? ICON.stop : ICON.play) + "<span>" + (playingAll ? "Stop" : "Play all") + "</span>";
+}
+function stopAudio(){
+  playToken++; playingAll = false; drilling = false;
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  markPlaying(-1); updatePlayAll(); updateDrillBtn(); drillStatus("");
+}
+function updateDrillBtn(){
+  var b = $("#drillBtn");
+  b.innerHTML = (drilling ? ICON.stop : ICON.play) + "<span>" + (drilling ? "Stop drill" : "Start drill") + "</span>";
+}
+function drillStatus(msg){
+  var n = $("#drillStatus");
+  n.textContent = msg || ""; n.hidden = !msg;
+}
+function drill(){
+  if (drilling) { stopAudio(); return; }
+  stopAudio();
+  var t = playToken, sents = getText().sentences;
+  var order = sents.map(function(s, i){ return i; });
+  if (shortFirst) order.sort(function(a, b){ return sents[a].el.length - sents[b].el.length; });
+  drilling = true; updateDrillBtn();
+  function wait(ms, fn){ setTimeout(function(){ if (t === playToken) fn(); }, ms); }
+  (function nextS(k){
+    if (t !== playToken) return;
+    if (k >= order.length) { stopAudio(); drillStatus("Drill finished. Tap Start drill to go again."); return; }
+    var i = order[k], s = sents[i];
+    var nWords = tokenize(s.el).filter(function(x){ return x.w; }).length;
+    var gap = Math.max(1800, nWords * 700);
+    var head = "Sentence " + (k + 1) + " of " + order.length;
+    markPlaying(i);
+    function greek(r){
+      if (t !== playToken) return;
+      if (r > reps) { wait(800, function(){ nextS(k + 1); }); return; }
+      drillStatus(head + ", Greek " + r + " of " + reps + ". Say it aloud after the voice.");
+      say(s.el, function(err){
+        if (t !== playToken) return;
+        if (err) { stopAudio(); return; }
+        wait(gap, function(){ greek(r + 1); });
+      });
+    }
+    if (enFirst && s.en) {
+      drillStatus(head + ", English.");
+      say(s.en, function(err){
+        if (t !== playToken) return;
+        if (err) { stopAudio(); return; }
+        wait(900, function(){ greek(1); });
+      }, { english: true });
+    } else greek(1);
+  })(0);
+}
+function playOne(i){
+  stopAudio();
+  var t = playToken, s = getText().sentences[i];
+  markPlaying(i);
+  say(s.el, function(){ if (t === playToken) markPlaying(-1); });
+}
+function playAll(){
+  if (playingAll) { stopAudio(); return; }
+  stopAudio();
+  var t = playToken, sents = getText().sentences;
+  playingAll = true; updatePlayAll();
+  (function next(i){
+    if (t !== playToken) return;
+    if (i >= sents.length) { playingAll = false; markPlaying(-1); updatePlayAll(); return; }
+    markPlaying(i);
+    say(sents[i].el, function(err){
+      if (t !== playToken) return;
+      if (err) { stopAudio(); return; }
+      setTimeout(function(){ next(i + 1); }, 250);
+    });
+  })(0);
+}
+
+/* ---------- reading view ---------- */
+function renderChips(){
+  var box = $("#chips"); box.replaceChildren();
+  TEXTS.forEach(function(t, i){
+    var b = el("button", "chip", t.title);
+    b.setAttribute("aria-pressed", String(cur === i));
+    b.lang = "el";
+    b.onclick = function(){ selectText(i); };
+    box.append(b);
+  });
+  var c = el("button", "chip", "Your own text");
+  c.setAttribute("aria-pressed", String(cur === -1));
+  c.onclick = function(){ selectText(-1); };
+  box.append(c);
+}
+function selectText(i){
+  stopAudio(); closeSheet();
+  cur = i; editing = (i === -1 && !custom);
+  renderAll();
+}
+function splitSentences(text){
+  var parts = text.replace(/\s+/g, " ").trim().match(/[^.!?;;…]+[.!?;;…]*\s*/g) || [];
+  return parts.map(function(s){ return {el: s.trim(), en: null}; }).filter(function(s){ return s.el; });
+}
+function renderReader(){
+  var isCustom = cur === -1;
+  $("#editor").hidden = !(isCustom && editing);
+  $("#reader").hidden = isCustom && editing;
+  $("#editCustom").hidden = !isCustom;
+  if (isCustom && editing) return;
+  var t = getText();
+  $("#tTitle").textContent = t.title;
+  $("#tTitle").lang = isCustom ? "en" : "el";
+  $("#tFocus").textContent = t.focus || "Tap any word for its meaning, then add it to your vocabulary.";
+  var list = $("#list"); list.replaceChildren();
+  t.sentences.forEach(function(s, i){
+    var row = el("div", "s");
+    var play = el("button", "icon-btn");
+    play.innerHTML = ICON.play;
+    play.setAttribute("aria-label", "Play sentence " + (i + 1));
+    play.onclick = function(){ playOne(i); };
+    var body = el("div", "sbody");
+    var line = el("p", "line"); line.lang = "el";
+    tokenize(s.el).forEach(function(tok){
+      if (tok.w) line.append(wordBtn(tok.w, i)); else line.append(document.createTextNode(tok.p));
+    });
+    body.append(line);
+    var tr = el("p", "tr"); tr.id = "tr" + i;
+    body.append(tr);
+    if (isCustom && sampleFn) {
+      var tb = el("button", "linkbtn", "Translate sentence"); tb.id = "trb" + i;
+      tb.onclick = function(){ translateSentence(i); };
+      body.append(tb);
+    }
+    row.append(play, body);
+    list.append(row);
+    paintTr(i);
+  });
+  refreshSaved();
+}
+function paintTr(i){
+  var s = getText().sentences[i], tr = $("#tr" + i), tb = $("#trb" + i);
+  if (!tr) return;
+  if (s.en) { tr.textContent = s.en; tr.hidden = cur >= 0 ? !showTr : false; if (tb) tb.hidden = true; }
+  else { tr.hidden = true; if (tb) tb.hidden = false; }
+}
+function wordBtn(w, i){
+  var b = el("button", "w", w);
+  b.dataset.k = lc(w); b.dataset.i = String(i);
+  b.onclick = function(){ openWord(w, i, b); };
+  return b;
+}
+function isSavedKey(key){
+  var g = GLOSS[key];
+  if (g && words.has(wid(g[0]))) return true;
+  return formSet.has(key);
+}
+function refreshSaved(){
+  var bs = document.querySelectorAll(".w");
+  for (var k = 0; k < bs.length; k++) bs[k].classList.toggle("saved", isSavedKey(bs[k].dataset.k));
+}
+function setActive(btn){
+  var bs = document.querySelectorAll(".w.active");
+  for (var k = 0; k < bs.length; k++) bs[k].classList.remove("active");
+  if (btn) btn.classList.add("active");
+}
+
+/* ---------- lookups ---------- */
+function sampleMsg(code){
+  if (code === "not_granted") return "Lookup was declined. Allow Claude for this page to translate words in your own text.";
+  if (code === "rate_limited") return "Too many lookups at once. Wait a moment, then tap the word again.";
+  return "The lookup failed. Tap the word to try again.";
+}
+function openWord(form, i, btn){
+  var t = getText(), s = t.sentences[i], key = lc(form), g = GLOSS[key];
+  var id = ++reqId;
+  panel = { form: form, key: key, i: i, sentence: s.el, sentenceEn: s.en || "", title: t.title,
+            lemma: null, en: null, note: "", loading: false, error: null };
+  var useGloss = g && (cur >= 0 || !sampleFn);
+  if (useGloss) { panel.lemma = g[0]; panel.en = g[1]; panel.note = g[2]; }
+  else if (sampleFn) { panel.loading = true; lookup(id); }
+  else { panel.manual = true; }
+  setActive(btn); renderSheet();
+}
+function lookup(id){
+  var p = panel;
+  var prompt = "You are a Modern Greek dictionary for an English-speaking learner at B1 level.\n" +
+    "Word as written: \"" + p.form + "\"\nSentence: \"" + p.sentence + "\"\n" +
+    "Reply with only a JSON object: {\"lemma\": \"dictionary form; for nouns include the article, e.g. η πόλη; for verbs the 1st person singular present\", " +
+    "\"en\": \"short English meaning in this sentence\", \"note\": \"grammar of this exact form in under 12 words, e.g. aorist, 1st person singular\"}";
+  sampleFn.json(prompt, { modelTier: "quick" }).then(function(r){
+    if (id !== reqId || !panel) return;
+    if (!r || typeof r.lemma !== "string" || typeof r.en !== "string") throw { code: "invalid_json" };
+    panel.lemma = r.lemma; panel.en = r.en; panel.note = typeof r.note === "string" ? r.note : "";
+    panel.loading = false; renderSheet();
+  }).catch(function(e){
+    if (id !== reqId || !panel) return;
+    panel.loading = false; panel.error = sampleMsg(e && e.code); renderSheet();
+  });
+}
+function translateSentence(i){
+  var s = getText().sentences[i], b = $("#trb" + i);
+  if (b) { b.disabled = true; b.textContent = "Translating…"; }
+  sampleFn("Translate this Modern Greek sentence into natural English. Reply with the translation only.\n\n" + s.el, { modelTier: "quick" })
+    .then(function(r){ s.en = r.text.trim(); paintTr(i); })
+    .catch(function(e){ if (b) { b.disabled = false; b.textContent = "Translate sentence"; } var tr = $("#tr" + i); if (tr) { tr.textContent = sampleMsg(e && e.code); tr.hidden = false; } });
+}
+
+/* ---------- word sheet ---------- */
+function closeSheet(){
+  panel = null; reqId++;
+  setActive(null);
+  $("#sheet").hidden = true; document.body.classList.remove("sheet-open");
+}
+function renderSheet(){
+  var sh = $("#sheet");
+  if (!panel) { sh.hidden = true; document.body.classList.remove("sheet-open"); return; }
+  sh.replaceChildren();
+  var inner = el("div", "sheet-in");
+  var head = el("div", "sheet-head");
+  var left = el("div");
+  var f = el("div", "form", panel.form); f.lang = "el";
+  left.append(f);
+  if (panel.lemma && lc(panel.lemma) !== panel.key) {
+    var lm = el("div", "lemma"); lm.append(document.createTextNode("from ")); var l2 = el("span", "", panel.lemma); l2.lang = "el"; lm.append(l2); left.append(lm);
+  }
+  var x = el("button", "icon-btn"); x.innerHTML = ICON.close; x.setAttribute("aria-label", "Close"); x.onclick = closeSheet;
+  head.append(left, x); inner.append(head);
+  if (panel.loading) inner.append(el("p", "gram", "Looking up…"));
+  else if (panel.manual) {
+    var mf = el("div", "manual");
+    var i1 = document.createElement("input"); i1.id = "mLemma"; i1.placeholder = "Dictionary form (optional)"; i1.lang = "el"; i1.value = panel.lemma || "";
+    var i2 = document.createElement("input"); i2.id = "mEn"; i2.placeholder = "Meaning in English"; i2.value = panel.en || "";
+    i1.oninput = function(){ panel.lemma = i1.value; }; i2.oninput = function(){ panel.en = i2.value; };
+    mf.append(i1, i2); inner.append(mf);
+  }
+  else if (panel.error) inner.append(el("p", "err", panel.error));
+  else {
+    inner.append(el("p", "en", panel.en));
+    if (panel.note) inner.append(el("p", "gram", panel.note));
+  }
+  var ctx = el("p", "ctx"); ctx.lang = "el";
+  tokenize(panel.sentence).forEach(function(tok){
+    if (tok.w && lc(tok.w) === panel.key) ctx.append(el("mark", "", tok.w));
+    else ctx.append(document.createTextNode(tok.w || tok.p));
+  });
+  inner.append(ctx);
+  var act = el("div", "actions");
+  var sp = el("button", "btn"); sp.innerHTML = ICON.play + "<span>Listen</span>";
+  sp.onclick = function(){ stopAudio(); say(panel.form); };
+  act.append(sp);
+  if (!panel.loading && !panel.error) {
+    var lemOf = function(){ return ((panel.lemma || "").trim()) || panel.form; };
+    var saved = !panel.manual && words.has(wid(lemOf()));
+    var ad = el("button", saved ? "btn" : "btn primary", saved ? "Saved. Tap to remove" : "Add to vocabulary");
+    ad.onclick = function(){
+      if (!panel.manual && words.has(wid(lemOf()))) { removeWord(wid(lemOf())); return; }
+      if (panel.manual) {
+        var en = (panel.en || "").trim();
+        if (!en) { var m = $("#mEn"); if (m) m.focus(); return; }
+        panel.lemma = lemOf(); panel.en = en; panel.manual = false;
+      }
+      addWord(panel);
+    };
+    act.append(ad);
+  }
+  inner.append(act);
+  sh.append(inner); sh.hidden = false; document.body.classList.add("sheet-open");
+}
+
+/* ---------- vocabulary store ---------- */
+function rebuildForms(){
+  formSet = new Set();
+  words.forEach(function(w){ if (w.form) formSet.add(lc(w.form)); });
+}
+function afterWordsChange(){
+  persist();
+  rebuildForms();
+  $("#wordCount").textContent = String(words.size);
+  refreshSaved(); renderWords();
+  if (panel && !panel.loading && !panel.error) renderSheet();
+}
+function addWord(p){
+  var id = wid(p.lemma);
+  var data = { kind: "word", lemma: p.lemma, form: p.form, en: p.en, note: p.note || "",
+               sentence: p.sentence, sentenceEn: p.sentenceEn || "", source: p.title, addedAt: Date.now(), exportedAt: null };
+  var local = Object.assign({ id: id }, data);
+  words.set(id, local); afterWordsChange();
+  if (col) col.doc(id).set(data).catch(function(){ storeNote("The word is saved here but could not be written to storage. Export your list soon."); });
+}
+function removeWord(id){
+  words.delete(id); afterWordsChange();
+  if (col) col.doc(id).delete().catch(function(){});
+}
+function storeNote(msg){
+  var n = $("#storeNote");
+  if (!msg) { n.hidden = true; return; }
+  n.textContent = msg; n.hidden = false;
+}
+function sortedWords(){
+  return Array.from(words.values()).sort(function(a, b){ return (b.addedAt || 0) - (a.addedAt || 0); });
+}
+function renderWords(){
+  var list = sortedWords();
+  var fresh = list.filter(function(w){ return !w.exportedAt; });
+  $("#wCountText").textContent = list.length + (list.length === 1 ? " word" : " words") + ", " + fresh.length + " new";
+  $("#expNew").textContent = "Export new for Anki (" + fresh.length + ")";
+  $("#expNew").disabled = fresh.length === 0 || !dlFn;
+  $("#expAll").disabled = list.length === 0 || !dlFn;
+  $("#copyAll").disabled = list.length === 0;
+  $("#expNew").hidden = !dlFn; $("#expAll").hidden = !dlFn;
+  var box = $("#wlist"); box.replaceChildren();
+  if (!list.length) {
+    box.append(el("div", "empty", "No saved words yet. While reading, tap a word and choose Add to vocabulary."));
+    return;
+  }
+  list.forEach(function(w){
+    var row = el("div", "wrow");
+    var meta = el("div", "meta");
+    var top = el("div"); var lm = el("span", "lm", w.lemma); lm.lang = "el"; top.append(lm);
+    if (!w.exportedAt) top.append(el("span", "badge", "new"));
+    meta.append(top, el("div", "mean", w.en));
+    if (w.sentence) { var ex = el("div", "ex", w.sentence); ex.lang = "el"; meta.append(ex); }
+    var rm = el("button", "linkbtn", "Remove"); rm.onclick = function(){ removeWord(w.id); };
+    row.append(meta, rm); box.append(row);
+  });
+}
+
+/* ---------- Anki export ---------- */
+var dlFn = null;
+function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/[\t\r\n]+/g, " "); }
+function ankiText(list){
+  var rows = list.map(function(w){
+    var back = esc(w.en) + (w.note ? "<br><i>" + esc(w.note) + "</i>" : "") +
+      (w.sentence ? "<br><br>" + esc(w.sentence) + (w.sentenceEn ? "<br><small>" + esc(w.sentenceEn) + "</small>" : "") : "");
+    return [esc(w.lemma), back, "greek"].join("\t");
+  });
+  return ["#separator:tab", "#html:true", "#tags column:3"].concat(rows).join("\n") + "\n";
+}
+function exportWords(onlyNew){
+  var list = sortedWords().reverse().filter(function(w){ return !onlyNew || !w.exportedAt; });
+  if (!list.length || !dlFn) return;
+  var name = "greek-anki-" + new Date().toISOString().slice(0, 10) + (onlyNew ? "-new" : "") + ".txt";
+  dlFn.save({ filename: name, data: ankiText(list) }).then(function(){
+    var now = Date.now();
+    list.forEach(function(w){
+      var cur2 = words.get(w.id); if (cur2) cur2.exportedAt = now;
+    });
+    persist();
+    var chain = Promise.resolve();
+    if (col) list.forEach(function(w){ chain = chain.then(function(){ return col.doc(w.id).update({ exportedAt: now }); }).catch(function(){}); });
+    renderWords();
+    storeNote("");
+  }).catch(function(e){
+    if (e && e.code === "declined") return;
+    storeNote("The file could not be saved here. Use Copy as text and paste it into a .txt file instead.");
+  });
+}
+function copyWords(){
+  var text = ankiText(sortedWords().reverse());
+  var done = function(ok){ storeNote(ok ? "Copied. Paste it into a plain .txt file, then import that file in Anki." : "Copying is blocked in this view. Select the export button instead if it is shown."); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
+  else done(false);
+}
+
+/* ---------- views ---------- */
+function setView(v){
+  view = v;
+  $("#readView").hidden = v !== "read"; $("#wordsView").hidden = v !== "words";
+  $("#tabRead").setAttribute("aria-selected", String(v === "read"));
+  $("#tabWords").setAttribute("aria-selected", String(v === "words"));
+  if (v === "words") { stopAudio(); closeSheet(); renderWords(); }
+}
+var view = "read";
+function renderAll(){ renderChips(); renderReader(); updatePlayAll(); }
+
+/* ---------- wiring ---------- */
+$("#tabRead").onclick = function(){ setView("read"); };
+$("#tabWords").onclick = function(){ setView("words"); };
+$("#playAll").onclick = playAll;
+$("#drillBtn").onclick = drill;
+(function drillInit(){
+  var bs = document.querySelectorAll("#repSeg button");
+  function paint(){ for (var k = 0; k < bs.length; k++) bs[k].setAttribute("aria-pressed", String(parseInt(bs[k].dataset.n, 10) === reps)); }
+  for (var k = 0; k < bs.length; k++) bs[k].onclick = function(){ reps = parseInt(this.dataset.n, 10); ls.set("gr.reps", String(reps)); paint(); };
+  paint();
+  var e = $("#enFirstBtn"), s = $("#shortBtn");
+  e.setAttribute("aria-pressed", String(enFirst)); s.setAttribute("aria-pressed", String(shortFirst));
+  e.onclick = function(){ enFirst = !enFirst; ls.set("gr.enfirst", enFirst ? "1" : "0"); e.setAttribute("aria-pressed", String(enFirst)); };
+  s.onclick = function(){ shortFirst = !shortFirst; ls.set("gr.short", shortFirst ? "1" : "0"); s.setAttribute("aria-pressed", String(shortFirst)); };
+})();
+$("#trToggle").onclick = function(){
+  showTr = !showTr; ls.set("gr.tr", showTr ? "1" : "0");
+  $("#trToggle").setAttribute("aria-pressed", String(showTr));
+  var t = getText(); if (t) t.sentences.forEach(function(s, i){ paintTr(i); });
+};
+(function rateInit(){
+  var bs = document.querySelectorAll("#rateSeg button");
+  function paint(){ for (var k = 0; k < bs.length; k++) bs[k].setAttribute("aria-pressed", String(parseFloat(bs[k].dataset.r) === rate)); }
+  for (var k = 0; k < bs.length; k++) bs[k].onclick = function(){ rate = parseFloat(this.dataset.r); ls.set("gr.rate", String(rate)); paint(); };
+  paint();
+})();
+$("#editCustom").onclick = function(){ stopAudio(); closeSheet(); editing = true; $("#customInput").value = custom ? custom.sentences.map(function(s){ return s.el; }).join(" ") : ""; renderReader(); };
+$("#useCustom").onclick = function(){
+  var sents = splitSentences($("#customInput").value);
+  if (!sents.length) return;
+  custom = { title: "Your own text", focus: "", sentences: sents };
+  editing = false; renderAll();
+};
+$("#expNew").onclick = function(){ exportWords(true); };
+$("#expAll").onclick = function(){ exportWords(false); };
+$("#copyAll").onclick = copyWords;
+$("#trToggle").setAttribute("aria-pressed", String(showTr));
+
+if ("speechSynthesis" in window) {
+  pickVoice();
+  window.speechSynthesis.addEventListener && window.speechSynthesis.addEventListener("voiceschanged", function(){ pickVoice(); audioNote(); });
+}
+audioNote();
+renderAll();
+renderWords();
+
+/* ---------- offline storage and export ---------- */
+var KEY = "gr.words.v1";
+function persist(){
+  try { localStorage.setItem(KEY, JSON.stringify(Array.from(words.values()))); } catch (e) {}
+}
+function loadWords(){
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) JSON.parse(raw).forEach(function(w){ if (w && w.id) words.set(w.id, w); });
+  } catch (e) {}
+}
+function downloadFile(req){
+  return new Promise(function(res, rej){
+    try {
+      var blob = new Blob([req.data], { type: "text/plain" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = req.filename;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      res({ status: "saved" });
+    } catch (e) { rej({ code: "unavailable" }); }
+  });
+}
+function shareOrDownload(req){
+  var file = null;
+  try { file = new File([req.data], req.filename, { type: "text/plain" }); } catch (e) {}
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    return navigator.share({ files: [file], title: "Greek words for Anki" }).then(function(){ return { status: "saved" }; }, function(e){
+      if (e && e.name === "AbortError") throw { code: "declined" };
+      return downloadFile(req);
+    });
+  }
+  return downloadFile(req);
+}
+dlFn = { save: shareOrDownload };
+loadWords();
+afterWordsChange();
+storeNote("Your words are stored on this phone only. Export now and then so you have a backup.");
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+})();
+</script>
+</body>
+</html>
+
