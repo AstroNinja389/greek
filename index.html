@@ -56,6 +56,9 @@ h1{font-size:1.15rem;font-weight:600;margin:0;letter-spacing:.01em}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:.92rem}
+.lvl{flex-basis:100%;margin:6px 0 -2px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chip.done::before{content:"✓ ";color:var(--accent)}
+.nextbar{display:flex;justify-content:center;margin:18px 0 6px}
 .chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
 
 .thead h2{font-family:var(--font-gr);font-weight:600;font-size:1.5rem;line-height:1.25;margin:0 0 4px;text-wrap:balance}
@@ -168,6 +171,7 @@ h1{font-size:1.15rem;font-weight:600;margin:0;letter-spacing:.01em}
         <p class="note" id="drillStatus" hidden></p>
       </div>
       <div class="list" id="list"></div>
+      <div class="nextbar"><button class="chip" id="nextBtn" type="button"></button></div>
     </section>
   </main>
 
@@ -192,160 +196,532 @@ h1{font-size:1.15rem;font-weight:600;margin:0;letter-spacing:.01em}
 <script>
 /*DATA*/
 const TEXTS = [
-  {
-    id: "market", title: "Το Σάββατο στη λαϊκή", level: "B1",
-    focus: "Everyday verbs in the present and the aorist (simple past): πηγαίνω, αγόρασα, γύρισα, έφτιαξα, κάλεσα.",
-    sentences: [
-      { el: "Κάθε Σάββατο το πρωί πηγαίνω στη λαϊκή αγορά της γειτονιάς μου.", en: "Every Saturday morning I go to my neighborhood's farmers' market." },
-      { el: "Εκεί βρίσκω φρέσκα φρούτα και λαχανικά σε πολύ καλές τιμές.", en: "I find fresh fruit and vegetables there at very good prices." },
-      { el: "Ο μανάβης με γνωρίζει καλά και πάντα μου δίνει κάτι για δώρο.", en: "The greengrocer knows me well and always gives me something as a gift." },
-      { el: "Σήμερα αγόρασα πορτοκάλια, ντομάτες και ένα μεγάλο καρπούζι, γιατί ο καιρός ήταν πολύ ζεστός.", en: "Today I bought oranges, tomatoes and a big watermelon, because the weather was very hot." },
-      { el: "Όταν γύρισα σπίτι, έφτιαξα μια σαλάτα και κάλεσα μια φίλη να φάμε μαζί.", en: "When I got home, I made a salad and invited a friend to eat together." }
-    ]
-  },
-  {
-    id: "plans", title: "Αλλάζουμε σχέδια", level: "B1",
-    focus: "Hypotheticals and subjunctive: αν + imperfect, θα + imperfect (would), να + aorist subjunctive.",
-    sentences: [
-      { el: "Είχαμε σχεδιάσει να πάμε εκδρομή στο Πήλιο, αλλά η πρόγνωση του καιρού ήταν άσχημη.", en: "We had planned to go on a trip to Pelion, but the weather forecast was bad." },
-      { el: "Αν έβρεχε πολύ, δεν θα μπορούσαμε να περπατήσουμε στα μονοπάτια.", en: "If it rained a lot, we wouldn't be able to walk on the trails." },
-      { el: "Έτσι αποφασίσαμε να μείνουμε στην πόλη και να επισκεφτούμε ένα μουσείο.", en: "So we decided to stay in the city and visit a museum." },
-      { el: "Στο τέλος περάσαμε πολύ ωραία, παρόλο που δεν κάναμε αυτό που είχαμε σχεδιάσει.", en: "In the end we had a very nice time, even though we didn't do what we had planned." }
-    ]
-  },
-  {
-    id: "landlord", title: "Μήνυμα από τον ιδιοκτήτη", level: "B1",
-    focus: "Reported speech with ότι, the future with θα, and the polite conditional θα προτιμούσα.",
-    sentences: [
-      { el: "Σήμερα το πρωί πήρα ένα μήνυμα από τον ιδιοκτήτη του διαμερίσματος.", en: "This morning I got a message from the apartment's landlord." },
-      { el: "Μου έγραψε ότι ο υδραυλικός θα έρθει την Πέμπτη για να φτιάξει τη βρύση της κουζίνας.", en: "He wrote to me that the plumber will come on Thursday to fix the kitchen tap." },
-      { el: "Δυστυχώς, εκείνη την ώρα έχω μια σημαντική συνάντηση και δεν μπορώ να μείνω σπίτι.", en: "Unfortunately, I have an important meeting at that time and I can't stay home." },
-      { el: "Του απάντησα ότι θα προτιμούσα να έρθει το απόγευμα, αν είναι δυνατόν.", en: "I replied to him that I would prefer him to come in the afternoon, if possible." }
-    ]
-  }
+ {
+  "id": "airport",
+  "title": "Στο αεροδρόμιο",
+  "level": "A2",
+  "focus": "Travel words and polite questions in the present tense. Good first text for the flight.",
+  "sentences": [
+   {
+    "el": "Φτάνω στο αεροδρόμιο δύο ώρες πριν από την πτήση.",
+    "en": "I arrive at the airport two hours before the flight."
+   },
+   {
+    "el": "Πρώτα πηγαίνω στο γκισέ και δείχνω το διαβατήριό μου.",
+    "en": "First I go to the counter and show my passport."
+   },
+   {
+    "el": "Η υπάλληλος με ρωτάει: «Έχετε μεγάλη βαλίτσα;»",
+    "en": "The clerk asks me: 'Do you have a big suitcase?'"
+   },
+   {
+    "el": "Της απαντάω ότι έχω μόνο μια μικρή τσάντα, και εκείνη μου δίνει την κάρτα επιβίβασης.",
+    "en": "I answer her that I only have a small bag, and she gives me the boarding pass."
+   },
+   {
+    "el": "Μετά περνάω από τον έλεγχο ασφαλείας και περιμένω στην αίθουσα αναχωρήσεων.",
+    "en": "Then I go through security and wait in the departures hall."
+   },
+   {
+    "el": "Η πύλη ανοίγει σε σαράντα λεπτά, οπότε έχω χρόνο να πιω έναν καφέ.",
+    "en": "The gate opens in forty minutes, so I have time to drink a coffee."
+   }
+  ]
+ },
+ {
+  "id": "restaurant",
+  "title": "Στο εστιατόριο",
+  "level": "A2",
+  "focus": "Ordering food. Past tense of common verbs and the polite 'θα ήθελα' (I would like).",
+  "sentences": [
+   {
+    "el": "Το βράδυ πήγαμε σε μια μικρή ταβέρνα κοντά στη θάλασσα.",
+    "en": "In the evening we went to a small taverna near the sea."
+   },
+   {
+    "el": "Ο σερβιτόρος μας έφερε το μενού και ένα μπουκάλι νερό.",
+    "en": "The waiter brought us the menu and a bottle of water."
+   },
+   {
+    "el": "Θα ήθελα μια χωριάτικη σαλάτα και ψητό ψάρι, είπα.",
+    "en": "I would like a village salad and grilled fish, I said."
+   },
+   {
+    "el": "Η φίλη μου προτίμησε μουσακά, γιατί δεν τρώει ψάρι.",
+    "en": "My friend preferred moussaka, because she doesn't eat fish."
+   },
+   {
+    "el": "Το φαγητό ήταν πολύ νόστιμο και οι μερίδες ήταν μεγάλες.",
+    "en": "The food was very tasty and the portions were big."
+   },
+   {
+    "el": "Στο τέλος ζητήσαμε τον λογαριασμό και αφήσαμε λίγα χρήματα για φιλοδώρημα.",
+    "en": "In the end we asked for the bill and left a little money as a tip."
+   }
+  ]
+ },
+ {
+  "id": "family",
+  "title": "Η οικογένειά μου",
+  "level": "A2",
+  "focus": "Describing people and family. Possessives, comparisons, and the present tense.",
+  "sentences": [
+   {
+    "el": "Η οικογένειά μου είναι μικρή: έχω έναν αδελφό και μια αδελφή.",
+    "en": "My family is small: I have a brother and a sister."
+   },
+   {
+    "el": "Ο αδελφός μου είναι δάσκαλος και ζει σε ένα χωριό κοντά στην Πάτρα.",
+    "en": "My brother is a teacher and lives in a village near Patras."
+   },
+   {
+    "el": "Η αδελφή μου είναι πιο νέα από μένα και σπουδάζει ιατρική στην Αθήνα.",
+    "en": "My sister is younger than me and studies medicine in Athens."
+   },
+   {
+    "el": "Οι γονείς μου μένουν στο Ηράκλειο, και τους επισκέπτομαι δύο φορές τον χρόνο.",
+    "en": "My parents live in Heraklion, and I visit them twice a year."
+   },
+   {
+    "el": "Η γιαγιά μου μαγειρεύει τα καλύτερα φαγητά και πάντα ρωτάει αν πεινάω.",
+    "en": "My grandmother cooks the best dishes and always asks whether I'm hungry."
+   },
+   {
+    "el": "Τα Χριστούγεννα μαζευόμαστε όλοι μαζί και περνάμε υπέροχα.",
+    "en": "At Christmas we all gather together and have a wonderful time."
+   }
+  ]
+ },
+ {
+  "id": "directions",
+  "title": "Ζητάω οδηγίες",
+  "level": "A2",
+  "focus": "Asking for and giving directions. Imperatives and place words.",
+  "sentences": [
+   {
+    "el": "Συγγνώμη, ξέρετε πού είναι το μουσείο;",
+    "en": "Excuse me, do you know where the museum is?"
+   },
+   {
+    "el": "Ναι, είναι πολύ κοντά: πηγαίνετε ευθεία μέχρι το φανάρι.",
+    "en": "Yes, it's very close: go straight ahead until the traffic light."
+   },
+   {
+    "el": "Μετά στρίψτε δεξιά και συνεχίστε για πεντακόσια μέτρα.",
+    "en": "Then turn right and continue for five hundred meters."
+   },
+   {
+    "el": "Θα δείτε μια μεγάλη πλατεία με ένα συντριβάνι.",
+    "en": "You will see a big square with a fountain."
+   },
+   {
+    "el": "Το μουσείο βρίσκεται απέναντι από μια τράπεζα, δίπλα στο πάρκο.",
+    "en": "The museum is across from a bank, next to the park."
+   },
+   {
+    "el": "Ευχαριστώ πολύ, θα το βρω εύκολα!",
+    "en": "Thank you very much, I'll find it easily!"
+   }
+  ]
+ },
+ {
+  "id": "hotel",
+  "title": "Στο ξενοδοχείο",
+  "level": "A2",
+  "focus": "Check-in conversation. Polite requests, 'if' sentences with the subjunctive, and the imperative.",
+  "sentences": [
+   {
+    "el": "Καλησπέρα, έχω κράτηση στο όνομα Παπαδοπούλου.",
+    "en": "Good evening, I have a reservation under the name Papadopoulou."
+   },
+   {
+    "el": "Ναι, σας περιμένουμε: δωμάτιο με θέα στη θάλασσα για τρεις νύχτες.",
+    "en": "Yes, we are expecting you: a room with a sea view for three nights."
+   },
+   {
+    "el": "Το πρωινό σερβίρεται από τις επτά μέχρι τις δέκα το πρωί.",
+    "en": "Breakfast is served from seven until ten in the morning."
+   },
+   {
+    "el": "Υπάρχει δωρεάν ίντερνετ στο δωμάτιο;",
+    "en": "Is there free internet in the room?"
+   },
+   {
+    "el": "Βέβαια, ο κωδικός είναι γραμμένος σε αυτό το χαρτί.",
+    "en": "Of course, the code is written on this piece of paper."
+   },
+   {
+    "el": "Αν χρειαστείτε κάτι, καλέστε μας στη ρεσεψιόν.",
+    "en": "If you need anything, call us at reception."
+   }
+  ]
+ },
+ {
+  "id": "market",
+  "title": "Το Σάββατο στη λαϊκή",
+  "level": "B1",
+  "focus": "Everyday verbs in the present and the aorist (simple past): πηγαίνω, αγόρασα, γύρισα, έφτιαξα, κάλεσα.",
+  "sentences": [
+   {
+    "el": "Κάθε Σάββατο το πρωί πηγαίνω στη λαϊκή αγορά της γειτονιάς μου.",
+    "en": "Every Saturday morning I go to my neighborhood's farmers' market."
+   },
+   {
+    "el": "Εκεί βρίσκω φρέσκα φρούτα και λαχανικά σε πολύ καλές τιμές.",
+    "en": "I find fresh fruit and vegetables there at very good prices."
+   },
+   {
+    "el": "Ο μανάβης με γνωρίζει καλά και πάντα μου δίνει κάτι για δώρο.",
+    "en": "The greengrocer knows me well and always gives me something as a gift."
+   },
+   {
+    "el": "Σήμερα αγόρασα πορτοκάλια, ντομάτες και ένα μεγάλο καρπούζι, γιατί ο καιρός ήταν πολύ ζεστός.",
+    "en": "Today I bought oranges, tomatoes and a big watermelon, because the weather was very hot."
+   },
+   {
+    "el": "Όταν γύρισα σπίτι, έφτιαξα μια σαλάτα και κάλεσα μια φίλη να φάμε μαζί.",
+    "en": "When I got home, I made a salad and invited a friend to eat together."
+   }
+  ]
+ },
+ {
+  "id": "plans",
+  "title": "Αλλάζουμε σχέδια",
+  "level": "B1",
+  "focus": "Hypotheticals and subjunctive: αν + imperfect, θα + imperfect (would), να + aorist subjunctive.",
+  "sentences": [
+   {
+    "el": "Είχαμε σχεδιάσει να πάμε εκδρομή στο Πήλιο, αλλά η πρόγνωση του καιρού ήταν άσχημη.",
+    "en": "We had planned to go on a trip to Pelion, but the weather forecast was bad."
+   },
+   {
+    "el": "Αν έβρεχε πολύ, δεν θα μπορούσαμε να περπατήσουμε στα μονοπάτια.",
+    "en": "If it rained a lot, we wouldn't be able to walk on the trails."
+   },
+   {
+    "el": "Έτσι αποφασίσαμε να μείνουμε στην πόλη και να επισκεφτούμε ένα μουσείο.",
+    "en": "So we decided to stay in the city and visit a museum."
+   },
+   {
+    "el": "Στο τέλος περάσαμε πολύ ωραία, παρόλο που δεν κάναμε αυτό που είχαμε σχεδιάσει.",
+    "en": "In the end we had a very nice time, even though we didn't do what we had planned."
+   }
+  ]
+ },
+ {
+  "id": "landlord",
+  "title": "Μήνυμα από τον ιδιοκτήτη",
+  "level": "B1",
+  "focus": "Reported speech with ότι, the future with θα, and the polite conditional θα προτιμούσα.",
+  "sentences": [
+   {
+    "el": "Σήμερα το πρωί πήρα ένα μήνυμα από τον ιδιοκτήτη του διαμερίσματος.",
+    "en": "This morning I got a message from the apartment's landlord."
+   },
+   {
+    "el": "Μου έγραψε ότι ο υδραυλικός θα έρθει την Πέμπτη για να φτιάξει τη βρύση της κουζίνας.",
+    "en": "He wrote to me that the plumber will come on Thursday to fix the kitchen tap."
+   },
+   {
+    "el": "Δυστυχώς, εκείνη την ώρα έχω μια σημαντική συνάντηση και δεν μπορώ να μείνω σπίτι.",
+    "en": "Unfortunately, I have an important meeting at that time and I can't stay home."
+   },
+   {
+    "el": "Του απάντησα ότι θα προτιμούσα να έρθει το απόγευμα, αν είναι δυνατόν.",
+    "en": "I replied to him that I would prefer him to come in the afternoon, if possible."
+   }
+  ]
+ },
+ {
+  "id": "pharmacy",
+  "title": "Στο φαρμακείο",
+  "level": "B1",
+  "focus": "Health vocabulary, reported questions with αν, and advice with να + subjunctive.",
+  "sentences": [
+   {
+    "el": "Από χθες το βράδυ έχω πονόλαιμο και με πονάει λίγο το κεφάλι.",
+    "en": "Since last night I've had a sore throat and my head hurts a little."
+   },
+   {
+    "el": "Η φαρμακοποιός με ρώτησε αν έχω πυρετό και αν βήχω πολύ.",
+    "en": "The pharmacist asked me whether I have a fever and whether I cough a lot."
+   },
+   {
+    "el": "Της είπα ότι δεν έχω πυρετό, αλλά δεν νιώθω καλά.",
+    "en": "I told her that I don't have a fever, but I don't feel well."
+   },
+   {
+    "el": "Μου έδωσε παστίλιες για τον λαιμό και μου πρότεινε να πίνω πολλά ζεστά ροφήματα.",
+    "en": "She gave me throat lozenges and suggested that I drink lots of hot drinks."
+   },
+   {
+    "el": "Αν δεν περάσει μέσα σε τρεις μέρες, θα πρέπει να πάω σε γιατρό.",
+    "en": "If it doesn't pass within three days, I'll have to go to a doctor."
+   },
+   {
+    "el": "Πλήρωσα, την ευχαρίστησα και γύρισα σπίτι για να ξεκουραστώ.",
+    "en": "I paid, thanked her and went home to rest."
+   }
+  ]
+ },
+ {
+  "id": "wfh",
+  "title": "Δουλεύω από το σπίτι",
+  "level": "B1",
+  "focus": "Expressing opinions and contrasts: από την άλλη, ενώ, γι' αυτό. Habits in the past with imperfect + να.",
+  "sentences": [
+   {
+    "el": "Εδώ και δύο χρόνια δουλεύω από το σπίτι τρεις μέρες την εβδομάδα.",
+    "en": "For two years I've been working from home three days a week."
+   },
+   {
+    "el": "Έτσι γλιτώνω τον χρόνο που έχανα στους δρόμους και έχω περισσότερο χρόνο για μένα.",
+    "en": "This way I save the time I used to lose on the roads and have more time for myself."
+   },
+   {
+    "el": "Από την άλλη, μου λείπει η επαφή με τους συναδέλφους μου.",
+    "en": "On the other hand, I miss the contact with my colleagues."
+   },
+   {
+    "el": "Στο γραφείο μπορούσαμε να συζητάμε ιδέες πάνω από έναν καφέ, ενώ στην οθόνη όλα είναι πιο τυπικά.",
+    "en": "At the office we could discuss ideas over a coffee, whereas on the screen everything is more formal."
+   },
+   {
+    "el": "Γι' αυτό προσπαθώ να βγαίνω έξω κάθε μεσημέρι και να περπατάω λίγο.",
+    "en": "That's why I try to go outside every lunchtime and walk a little."
+   },
+   {
+    "el": "Νομίζω ότι η ισορροπία ανάμεσα στο σπίτι και το γραφείο είναι η καλύτερη λύση.",
+    "en": "I think the balance between home and the office is the best solution."
+   }
+  ]
+ },
+ {
+  "id": "islands",
+  "title": "Ένα ταξίδι στα νησιά",
+  "level": "B1",
+  "focus": "Telling a story in the past: aorist for events, imperfect for repeated actions.",
+  "sentences": [
+   {
+    "el": "Πέρσι το καλοκαίρι πήραμε το πλοίο από τον Πειραιά για τη Νάξο.",
+    "en": "Last summer we took the ship from Piraeus to Naxos."
+   },
+   {
+    "el": "Το ταξίδι κράτησε σχεδόν πέντε ώρες, αλλά η θάλασσα ήταν ήρεμη.",
+    "en": "The journey lasted almost five hours, but the sea was calm."
+   },
+   {
+    "el": "Νοικιάσαμε ένα μικρό αυτοκίνητο και γυρίσαμε όλο το νησί.",
+    "en": "We rented a small car and toured the whole island."
+   },
+   {
+    "el": "Κάθε μέρα κολυμπούσαμε σε μια διαφορετική παραλία, και το βράδυ τρώγαμε ψάρι στο λιμάνι.",
+    "en": "Every day we swam at a different beach, and in the evening we ate fish at the harbor."
+   },
+   {
+    "el": "Ο ιδιοκτήτης του δωματίου έφερνε κάθε πρωί φρέσκα σύκα από τον κήπο του.",
+    "en": "The owner of the room used to bring fresh figs from his garden every morning."
+   },
+   {
+    "el": "Όταν έφτασε η ώρα να φύγουμε, δεν θέλαμε να γυρίσουμε στην πόλη.",
+    "en": "When the time came to leave, we didn't want to go back to the city."
+   }
+  ]
+ },
+ {
+  "id": "memories",
+  "title": "Παλιές αναμνήσεις",
+  "level": "B1",
+  "focus": "The imperfect tense for the past, and the wish μακάρι να + imperfect.",
+  "sentences": [
+   {
+    "el": "Όταν ήμασταν παιδιά, περνούσαμε όλα τα καλοκαίρια στο χωριό του παππού μας.",
+    "en": "When we were children, we spent all the summers in our grandfather's village."
+   },
+   {
+    "el": "Ξυπνούσαμε νωρίς και τρέχαμε στο ποτάμι για να παίξουμε με τα άλλα παιδιά.",
+    "en": "We woke up early and ran to the river to play with the other children."
+   },
+   {
+    "el": "Η γιαγιά μας έφτιαχνε ζεστό ψωμί και μας έλεγε παραμύθια το βράδυ.",
+    "en": "Our grandmother made warm bread and told us fairy tales in the evening."
+   },
+   {
+    "el": "Τότε δεν είχαμε τηλεόραση ούτε κινητά, αλλά δεν βαριόμασταν ποτέ.",
+    "en": "Back then we had neither television nor mobile phones, but we were never bored."
+   },
+   {
+    "el": "Σήμερα το σπίτι είναι άδειο, και όμως κάθε φορά που περνάω από εκεί, νιώθω ότι ακούω τα γέλια μας.",
+    "en": "Today the house is empty, and yet every time I pass by, I feel that I can hear our laughter."
+   },
+   {
+    "el": "Μακάρι να μπορούσα να γυρίσω πίσω έστω και για μία μέρα.",
+    "en": "I wish I could go back, even for a single day."
+   }
+  ]
+ },
+ {
+  "id": "meeting",
+  "title": "Μια συνάντηση στη δουλειά",
+  "level": "B2",
+  "focus": "Formal register: pluperfect, perfect passive, relative clauses with τα οποία, reported speech.",
+  "sentences": [
+   {
+    "el": "Η συνάντηση ξεκίνησε με καθυστέρηση, επειδή ο διευθυντής είχε μείνει στην κίνηση.",
+    "en": "The meeting started late because the director had been stuck in traffic."
+   },
+   {
+    "el": "Πρώτα παρουσιάσαμε τα αποτελέσματα του τελευταίου τριμήνου, τα οποία ήταν καλύτερα από αυτό που περιμέναμε.",
+    "en": "First we presented the results of the last quarter, which were better than what we expected."
+   },
+   {
+    "el": "Ωστόσο, η Μαρία επισήμανε ότι οι δαπάνες έχουν αυξηθεί σημαντικά και ότι πρέπει να τις μειώσουμε.",
+    "en": "However, Maria pointed out that expenses have increased significantly and that we must reduce them."
+   },
+   {
+    "el": "Ο Νίκος πρότεινε να αναβάλουμε τις προσλήψεις, ενώ εγώ υποστήριξα ότι αυτό θα επιβάρυνε την ομάδα.",
+    "en": "Nikos suggested that we postpone hiring, while I argued that this would burden the team."
+   },
+   {
+    "el": "Μετά από μεγάλη συζήτηση, καταλήξαμε σε έναν συμβιβασμό που ικανοποίησε σχεδόν όλους.",
+    "en": "After a long discussion, we reached a compromise that satisfied almost everyone."
+   },
+   {
+    "el": "Το πρακτικό της συνάντησης θα σταλεί σε όλους μέχρι την Παρασκευή.",
+    "en": "The minutes of the meeting will be sent to everyone by Friday."
+   }
+  ]
+ },
+ {
+  "id": "social",
+  "title": "Τα μέσα κοινωνικής δικτύωσης",
+  "level": "B2",
+  "focus": "Arguing a point: αν + imperfect with θα + imperfect, concession (παρ' όλα αυτά), and relative clauses with τον οποίο.",
+  "sentences": [
+   {
+    "el": "Πολλοί άνθρωποι πιστεύουν ότι τα μέσα κοινωνικής δικτύωσης μας φέρνουν πιο κοντά.",
+    "en": "Many people believe that social media bring us closer together."
+   },
+   {
+    "el": "Στην πραγματικότητα, όμως, περνάμε ώρες μπροστά στην οθόνη χωρίς να μιλάμε με κανέναν.",
+    "en": "In reality, however, we spend hours in front of the screen without talking to anyone."
+   },
+   {
+    "el": "Το πρόβλημα δεν είναι η τεχνολογία αυτή καθαυτή, αλλά ο τρόπος με τον οποίο τη χρησιμοποιούμε.",
+    "en": "The problem isn't the technology itself, but the way in which we use it."
+   },
+   {
+    "el": "Αν περιορίζαμε τον χρόνο που ξοδεύουμε στο κινητό, θα είχαμε περισσότερες ευκαιρίες για πραγματικές συζητήσεις.",
+    "en": "If we limited the time we spend on the phone, we would have more opportunities for real conversations."
+   },
+   {
+    "el": "Παρ' όλα αυτά, δεν μπορούμε να αγνοήσουμε ότι οι πλατφόρμες αυτές βοηθούν ανθρώπους να βρουν δουλειά ή να μείνουν σε επαφή με τους δικούς τους.",
+    "en": "Nevertheless, we can't ignore that these platforms help people find work or stay in touch with their loved ones."
+   },
+   {
+    "el": "Ίσως η λύση να είναι να μάθουμε να τις χρησιμοποιούμε με μέτρο, χωρίς να γινόμαστε εξαρτημένοι.",
+    "en": "Perhaps the solution is to learn to use them in moderation, without becoming dependent."
+   }
+  ]
+ },
+ {
+  "id": "recycling",
+  "title": "Περιβάλλον και ανακύκλωση",
+  "level": "B2",
+  "focus": "Cause and effect (με αποτέλεσμα να), 'not only… but also', and passive subjunctive (να ανακυκλωθούν).",
+  "sentences": [
+   {
+    "el": "Κάθε χρόνο οι πόλεις παράγουν τεράστιες ποσότητες σκουπιδιών, τα περισσότερα από τα οποία θα μπορούσαν να ανακυκλωθούν.",
+    "en": "Every year cities produce enormous quantities of rubbish, most of which could be recycled."
+   },
+   {
+    "el": "Η ανακύκλωση όχι μόνο μειώνει τη ρύπανση, αλλά εξοικονομεί και πολύτιμες πρώτες ύλες.",
+    "en": "Recycling not only reduces pollution but also saves valuable raw materials."
+   },
+   {
+    "el": "Σε πολλές γειτονιές υπάρχουν πια ξεχωριστοί κάδοι για χαρτί, γυαλί και πλαστικό.",
+    "en": "In many neighborhoods there are now separate bins for paper, glass and plastic."
+   },
+   {
+    "el": "Ωστόσο, αρκετοί κάτοικοι δεν τους χρησιμοποιούν σωστά, με αποτέλεσμα να χαλάει όλο το περιεχόμενο.",
+    "en": "However, quite a few residents don't use them correctly, with the result that the whole content gets spoiled."
+   },
+   {
+    "el": "Οι ειδικοί υποστηρίζουν ότι χρειάζεται περισσότερη ενημέρωση και αυστηρότερα πρόστιμα για όσους δεν συμμορφώνονται.",
+    "en": "Experts maintain that more information and stricter fines are needed for those who don't comply."
+   },
+   {
+    "el": "Αν δεν αλλάξουμε νοοτροπία τώρα, τα παιδιά μας θα κληρονομήσουν έναν πλανήτη γεμάτο απορρίμματα.",
+    "en": "If we don't change our mentality now, our children will inherit a planet full of waste."
+   }
+  ]
+ },
+ {
+  "id": "tourism",
+  "title": "Ο τουρισμός στην Ελλάδα",
+  "level": "B2",
+  "focus": "Abstract vocabulary and balanced argument: από την άλλη πλευρά, πλέον, passive subjunctive να βρεθεί.",
+  "sentences": [
+   {
+    "el": "Ο τουρισμός αποτελεί έναν από τους βασικότερους πυλώνες της ελληνικής οικονομίας.",
+    "en": "Tourism is one of the most fundamental pillars of the Greek economy."
+   },
+   {
+    "el": "Εκατομμύρια επισκέπτες έρχονται κάθε καλοκαίρι για να απολαύσουν τον ήλιο, τη θάλασσα και τον πολιτισμό.",
+    "en": "Millions of visitors come every summer to enjoy the sun, the sea and the culture."
+   },
+   {
+    "el": "Αυτό δημιουργεί χιλιάδες θέσεις εργασίας, κυρίως σε περιοχές όπου δεν υπάρχουν άλλες επιλογές.",
+    "en": "This creates thousands of jobs, mainly in areas where there are no other options."
+   },
+   {
+    "el": "Από την άλλη πλευρά, η υπερβολική συγκέντρωση τουριστών επιβαρύνει τα νησιά και ανεβάζει τις τιμές των ενοικίων.",
+    "en": "On the other hand, the excessive concentration of tourists burdens the islands and raises rents."
+   },
+   {
+    "el": "Πολλοί ντόπιοι δυσκολεύονται πλέον να βρουν σπίτι στον τόπο όπου γεννήθηκαν.",
+    "en": "Many locals now struggle to find a home in the place where they were born."
+   },
+   {
+    "el": "Η πρόκληση είναι να βρεθεί μια ισορροπία που να προστατεύει τόσο το περιβάλλον όσο και τους κατοίκους.",
+    "en": "The challenge is to find a balance that protects both the environment and the residents."
+   }
+  ]
+ },
+ {
+  "id": "easter",
+  "title": "Το Πάσχα στην Ελλάδα",
+  "level": "B2",
+  "focus": "Culture vocabulary, passive-form present (στολίζονται, μαζεύονται), and generic relative clauses (όποιο… δεν σπάσει).",
+  "sentences": [
+   {
+    "el": "Για τους περισσότερους Έλληνες, το Πάσχα είναι η μεγαλύτερη γιορτή της χρονιάς, πιο σημαντική ακόμα και από τα Χριστούγεννα.",
+    "en": "For most Greeks, Easter is the biggest holiday of the year, even more important than Christmas."
+   },
+   {
+    "el": "Τη Μεγάλη Παρασκευή οι εκκλησίες στολίζονται με λουλούδια και το βράδυ γίνεται η περιφορά του Επιταφίου.",
+    "en": "On Good Friday the churches are decorated with flowers and in the evening the procession of the Epitaphios takes place."
+   },
+   {
+    "el": "Το Μεγάλο Σάββατο, λίγο πριν από τα μεσάνυχτα, όλοι μαζεύονται με αναμμένες λαμπάδες και περιμένουν το «Χριστός Ανέστη».",
+    "en": "On Holy Saturday, shortly before midnight, everyone gathers with lit candles and waits for 'Christ is risen'."
+   },
+   {
+    "el": "Την επόμενη μέρα η οικογένεια μαζεύεται γύρω από το τραπέζι, ενώ το αρνί ψήνεται αργά στη σούβλα.",
+    "en": "The next day the family gathers around the table, while the lamb roasts slowly on the spit."
+   },
+   {
+    "el": "Παλιότερα, οι νοικοκυρές έβαφαν τα κόκκινα αυγά την Πέμπτη, και τα παιδιά τα τσούγκριζαν με μεγάλο ενθουσιασμό.",
+    "en": "In the past, housewives dyed the red eggs on Thursday, and the children cracked them against each other with great enthusiasm."
+   },
+   {
+    "el": "Όποιο αυγό δεν σπάσει, λένε ότι φέρνει τύχη σε αυτόν που το κρατάει.",
+    "en": "Whichever egg doesn't break, they say, brings luck to the person holding it."
+   }
+  ]
+ }
 ];
-
-/* key = word as it appears in the text, lowercase. value = [dictionary form, English, grammar of this form] */
-const GLOSS = {
-  "κάθε":["κάθε","every, each","Never changes form. 'κάθε μέρα' = every day"],
-  "σάββατο":["το Σάββατο","Saturday","Neuter noun. 'κάθε Σάββατο' = every Saturday"],
-  "το":["ο, η, το","the","Neuter singular article"],
-  "πρωί":["το πρωί","morning","'το πρωί' = in the morning"],
-  "πηγαίνω":["πηγαίνω","I go","Present, 1st person singular. Also written πάω"],
-  "στη":["σε","to, at, in (+ the)","Contraction of σε + τη(ν): to the (feminine)"],
-  "λαϊκή":["η λαϊκή αγορά","farmers' market","Feminine adjective, lit. 'of the people'. The phrase means farmers' market"],
-  "αγορά":["η αγορά","market; purchase","Feminine noun, accusative singular after σε"],
-  "της":["ο, η, το","of the","Feminine genitive article"],
-  "γειτονιάς":["η γειτονιά","neighborhood","Genitive singular: of the neighborhood"],
-  "μου":["εγώ","my; to me","Weak pronoun: 'my' after a noun, 'to me' before a verb"],
-  "εκεί":["εκεί","there",""],
-  "βρίσκω":["βρίσκω","I find","Present, 1st person singular"],
-  "φρέσκα":["φρέσκος","fresh","Neuter plural, agrees with φρούτα"],
-  "φρούτα":["το φρούτο","fruit","Neuter plural"],
-  "και":["και","and",""],
-  "λαχανικά":["το λαχανικό","vegetable","Neuter plural"],
-  "σε":["σε","in, at, to","Preposition, followed by the accusative"],
-  "πολύ":["πολύ","very; a lot","Means 'very' before an adjective"],
-  "καλές":["καλός","good","Feminine plural, agrees with τιμές"],
-  "τιμές":["η τιμή","price","Feminine plural. Also means 'honor'"],
-  "ο":["ο, η, το","the","Masculine nominative singular article"],
-  "μανάβης":["ο μανάβης","greengrocer","Masculine noun, nominative singular"],
-  "με":["εγώ","me","Weak accusative pronoun, placed before the verb"],
-  "γνωρίζει":["γνωρίζω","he/she knows","Present, 3rd person singular. 'To know' a person or a fact"],
-  "καλά":["καλά","well","Adverb"],
-  "πάντα":["πάντα","always",""],
-  "δίνει":["δίνω","he/she gives","Present, 3rd person singular. 'μου δίνει' = gives me"],
-  "κάτι":["κάτι","something",""],
-  "για":["για","for","'για δώρο' = as a gift. 'για να' = in order to"],
-  "δώρο":["το δώρο","gift","Neuter noun, accusative singular"],
-  "σήμερα":["σήμερα","today",""],
-  "αγόρασα":["αγοράζω","I bought","Aorist (simple past), 1st person singular"],
-  "πορτοκάλια":["το πορτοκάλι","orange","Neuter plural"],
-  "ντομάτες":["η ντομάτα","tomato","Feminine plural"],
-  "ένα":["ένας, μία, ένα","a, one","Neuter, agrees with the noun"],
-  "μεγάλο":["μεγάλος","big, large","Neuter singular, agrees with καρπούζι"],
-  "καρπούζι":["το καρπούζι","watermelon","Neuter noun"],
-  "γιατί":["γιατί","because; why","'Because' in a statement, 'why' in a question"],
-  "καιρός":["ο καιρός","weather; time","Masculine noun, nominative singular"],
-  "ήταν":["είμαι","was, were","Imperfect of 'to be', 3rd person"],
-  "ζεστός":["ζεστός","hot, warm","Masculine, agrees with καιρός"],
-  "όταν":["όταν","when","'When' joining two events (not a question)"],
-  "γύρισα":["γυρίζω","I came back; I turned","Aorist, 1st person singular. 'Γύρισα σπίτι' = I got home"],
-  "σπίτι":["το σπίτι","house, home","No preposition after γυρίζω: 'γύρισα σπίτι'"],
-  "έφτιαξα":["φτιάχνω","I made","Aorist, 1st person singular"],
-  "μια":["ένας, μία, ένα","a, one","Feminine, short form of μία"],
-  "σαλάτα":["η σαλάτα","salad","Feminine noun, accusative singular"],
-  "κάλεσα":["καλώ","I invited; I called","Aorist, 1st person singular"],
-  "φίλη":["η φίλη","friend (female)","Feminine noun, accusative singular"],
-  "να":["να","to; so that","Particle that introduces the subjunctive"],
-  "φάμε":["τρώω","(that) we eat","Aorist subjunctive, 1st person plural. Irregular aorist stem φα-"],
-  "μαζί":["μαζί","together",""],
-
-  "είχαμε":["έχω","we had","Imperfect, 1st person plural. With σχεδιάσει it means 'we had planned'"],
-  "σχεδιάσει":["σχεδιάζω","(had) planned","Fixed form used after έχω / είχα to build perfect tenses"],
-  "πάμε":["πηγαίνω","(that) we go","Aorist subjunctive, 1st person plural, of πάω"],
-  "εκδρομή":["η εκδρομή","trip, excursion","Feminine noun, accusative. 'πάμε εκδρομή' = go on a trip"],
-  "στο":["σε","to, at, in (+ the)","Contraction of σε + το: to the (neuter)"],
-  "πήλιο":["το Πήλιο","Pelion","A mountain in Thessaly, popular for hiking"],
-  "αλλά":["αλλά","but",""],
-  "η":["ο, η, το","the","Feminine nominative singular article"],
-  "πρόγνωση":["η πρόγνωση","forecast","Feminine noun, nominative singular"],
-  "του":["ο, η, το","of the; of him, to him","Genitive article (masc./neut.), or the weak pronoun 'to him' before a verb"],
-  "καιρού":["ο καιρός","weather","Genitive singular: of the weather"],
-  "άσχημη":["άσχημος","bad, ugly","Feminine, agrees with πρόγνωση"],
-  "αν":["αν","if","With the imperfect it describes a hypothetical situation"],
-  "έβρεχε":["βρέχει","it rained, it was raining","Imperfect, 3rd person singular (impersonal)"],
-  "δεν":["δεν","not","Negation placed before the verb"],
-  "θα":["θα","will; would","Future particle. Before an imperfect it means 'would'"],
-  "μπορούσαμε":["μπορώ","we could","Imperfect, 1st person plural. 'θα μπορούσαμε' = we would be able"],
-  "περπατήσουμε":["περπατώ","(that) we walk","Aorist subjunctive, 1st person plural, after να"],
-  "στα":["σε","to, at, in (+ the)","Contraction of σε + τα: in the (neuter plural)"],
-  "μονοπάτια":["το μονοπάτι","path, trail","Neuter plural"],
-  "έτσι":["έτσι","so, thus","At the start of a sentence: 'so' / 'that's why'"],
-  "αποφασίσαμε":["αποφασίζω","we decided","Aorist, 1st person plural"],
-  "μείνουμε":["μένω","(that) we stay","Aorist subjunctive, 1st person plural, after να"],
-  "στην":["σε","to, at, in (+ the)","Contraction of σε + την: in the (feminine)"],
-  "πόλη":["η πόλη","city","Feminine noun, accusative singular"],
-  "επισκεφτούμε":["επισκέπτομαι","(that) we visit","Aorist subjunctive, 1st person plural. Also written επισκεφθούμε"],
-  "μουσείο":["το μουσείο","museum","Neuter noun, accusative singular"],
-  "τέλος":["το τέλος","end","'στο τέλος' = in the end"],
-  "περάσαμε":["περνάω","we spent; we passed","Aorist, 1st person plural. 'Περάσαμε ωραία' = we had a good time"],
-  "ωραία":["ωραία","nicely, great","Adverb here. Also the neuter plural of ωραίος"],
-  "παρόλο":["παρόλο που","although","Always used together with που"],
-  "που":["που","that; which; who","Relative word. With παρόλο it means 'although'"],
-  "κάναμε":["κάνω","we did","Imperfect, 1st person plural"],
-  "αυτό":["αυτός","this, that","Neuter pronoun. 'αυτό που' = the thing that"],
-
-  "πήρα":["παίρνω","I took; I got","Aorist, 1st person singular. 'Πήρα μήνυμα' = I got a message"],
-  "μήνυμα":["το μήνυμα","message","Neuter noun, accusative singular"],
-  "από":["από","from",""],
-  "τον":["ο, η, το","the","Masculine accusative article, used after prepositions such as από"],
-  "ιδιοκτήτη":["ο ιδιοκτήτης","owner, landlord","Masculine noun, accusative singular"],
-  "διαμερίσματος":["το διαμέρισμα","apartment","Genitive singular: of the apartment"],
-  "έγραψε":["γράφω","he/she wrote","Aorist, 3rd person singular"],
-  "ότι":["ότι","that","Conjunction after verbs of saying and thinking"],
-  "υδραυλικός":["ο υδραυλικός","plumber","Masculine noun, nominative singular"],
-  "έρθει":["έρχομαι","(that) he/she comes","Aorist subjunctive, 3rd person singular. 'θα έρθει' = will come"],
-  "την":["ο, η, το","the","Feminine accusative article"],
-  "πέμπτη":["η Πέμπτη","Thursday","'την Πέμπτη' = on Thursday"],
-  "φτιάξει":["φτιάχνω","(that) he/she fixes","Aorist subjunctive, 3rd person singular. 'για να φτιάξει' = in order to fix"],
-  "τη":["ο, η, το","the","Feminine accusative article, short form before a consonant"],
-  "βρύση":["η βρύση","tap, faucet","Feminine noun, accusative singular"],
-  "κουζίνας":["η κουζίνα","kitchen","Genitive singular: of the kitchen"],
-  "δυστυχώς":["δυστυχώς","unfortunately",""],
-  "εκείνη":["εκείνος","that","Feminine, agrees with ώρα"],
-  "ώρα":["η ώρα","hour; time","'εκείνη την ώρα' = at that time"],
-  "έχω":["έχω","I have","Present, 1st person singular"],
-  "σημαντική":["σημαντικός","important","Feminine, agrees with συνάντηση"],
-  "συνάντηση":["η συνάντηση","meeting","Feminine noun, accusative singular"],
-  "μπορώ":["μπορώ","I can","Present, 1st person singular. Followed by να + subjunctive"],
-  "μείνω":["μένω","(that) I stay","Aorist subjunctive, 1st person singular, after να"],
-  "απάντησα":["απαντώ","I answered","Aorist, 1st person singular. 'Του απάντησα' = I answered him"],
-  "προτιμούσα":["προτιμώ","I would prefer","Imperfect, 1st person singular. 'Θα προτιμούσα' = I would prefer (polite)"],
-  "απόγευμα":["το απόγευμα","afternoon","'το απόγευμα' = in the afternoon"],
-  "είναι":["είμαι","he/she/it is","Present, 3rd person singular"],
-  "δυνατόν":["δυνατός","possible","Neuter singular. 'Αν είναι δυνατόν' = if possible"]
-};
+const GLOSS = {"κάθε":["κάθε","every, each","Never changes form. 'κάθε μέρα' = every day"],"σάββατο":["το Σάββατο","Saturday","Neuter noun. 'κάθε Σάββατο' = every Saturday"],"το":["ο, η, το","the","Neuter singular article"],"πρωί":["το πρωί","morning","'το πρωί' = in the morning"],"πηγαίνω":["πηγαίνω","I go","Present, 1st person singular. Also written πάω"],"στη":["σε","to, at, in (+ the)","Contraction of σε + τη(ν): to the (feminine)"],"λαϊκή":["η λαϊκή αγορά","farmers' market","Feminine adjective, lit. 'of the people'. The phrase means farmers' market"],"αγορά":["η αγορά","market; purchase","Feminine noun, accusative singular after σε"],"της":["ο, η, το","of the; her, to her","Feminine genitive article, or the weak pronoun 'to her' before a verb"],"γειτονιάς":["η γειτονιά","neighborhood","Genitive singular: of the neighborhood"],"μου":["εγώ","my; to me","Weak pronoun: 'my' after a noun, 'to me' before a verb"],"εκεί":["εκεί","there",""],"βρίσκω":["βρίσκω","I find","Present, 1st person singular"],"φρέσκα":["φρέσκος","fresh","Neuter plural, agrees with φρούτα"],"φρούτα":["το φρούτο","fruit","Neuter plural"],"και":["και","and",""],"λαχανικά":["το λαχανικό","vegetable","Neuter plural"],"σε":["σε","in, at, to","Preposition, followed by the accusative"],"πολύ":["πολύ","very; a lot","Means 'very' before an adjective"],"καλές":["καλός","good","Feminine plural, agrees with τιμές"],"τιμές":["η τιμή","price","Feminine plural. Also means 'honor'"],"ο":["ο, η, το","the","Masculine nominative singular article"],"μανάβης":["ο μανάβης","greengrocer","Masculine noun, nominative singular"],"με":["εγώ","me","Weak accusative pronoun, placed before the verb"],"γνωρίζει":["γνωρίζω","he/she knows","Present, 3rd person singular. 'To know' a person or a fact"],"καλά":["καλά","well","Adverb"],"πάντα":["πάντα","always",""],"δίνει":["δίνω","he/she gives","Present, 3rd person singular. 'μου δίνει' = gives me"],"κάτι":["κάτι","something",""],"για":["για","for","'για δώρο' = as a gift. 'για να' = in order to"],"δώρο":["το δώρο","gift","Neuter noun, accusative singular"],"σήμερα":["σήμερα","today",""],"αγόρασα":["αγοράζω","I bought","Aorist (simple past), 1st person singular"],"πορτοκάλια":["το πορτοκάλι","orange","Neuter plural"],"ντομάτες":["η ντομάτα","tomato","Feminine plural"],"ένα":["ένας, μία, ένα","a, one","Neuter, agrees with the noun"],"μεγάλο":["μεγάλος","big, large","Neuter singular, agrees with καρπούζι"],"καρπούζι":["το καρπούζι","watermelon","Neuter noun"],"γιατί":["γιατί","because; why","'Because' in a statement, 'why' in a question"],"καιρός":["ο καιρός","weather; time","Masculine noun, nominative singular"],"ήταν":["είμαι","was, were","Imperfect of 'to be', 3rd person"],"ζεστός":["ζεστός","hot, warm","Masculine, agrees with καιρός"],"όταν":["όταν","when","'When' joining two events (not a question)"],"γύρισα":["γυρίζω","I came back; I turned","Aorist, 1st person singular. 'Γύρισα σπίτι' = I got home"],"σπίτι":["το σπίτι","house, home","No preposition after γυρίζω: 'γύρισα σπίτι'"],"έφτιαξα":["φτιάχνω","I made","Aorist, 1st person singular"],"μια":["ένας, μία, ένα","a, one","Feminine, short form of μία"],"σαλάτα":["η σαλάτα","salad","Feminine noun, accusative singular"],"κάλεσα":["καλώ","I invited; I called","Aorist, 1st person singular"],"φίλη":["η φίλη","friend (female)","Feminine noun, accusative singular"],"να":["να","to; so that","Particle that introduces the subjunctive"],"φάμε":["τρώω","(that) we eat","Aorist subjunctive, 1st person plural. Irregular aorist stem φα-"],"μαζί":["μαζί","together",""],"είχαμε":["έχω","we had","Imperfect, 1st person plural. With σχεδιάσει it means 'we had planned'"],"σχεδιάσει":["σχεδιάζω","(had) planned","Fixed form used after έχω / είχα to build perfect tenses"],"πάμε":["πηγαίνω","(that) we go","Aorist subjunctive, 1st person plural, of πάω"],"εκδρομή":["η εκδρομή","trip, excursion","Feminine noun, accusative. 'πάμε εκδρομή' = go on a trip"],"στο":["σε","to, at, in (+ the)","Contraction of σε + το: to the (neuter)"],"πήλιο":["το Πήλιο","Pelion","A mountain in Thessaly, popular for hiking"],"αλλά":["αλλά","but",""],"η":["ο, η, το","the","Feminine nominative singular article"],"πρόγνωση":["η πρόγνωση","forecast","Feminine noun, nominative singular"],"του":["ο, η, το","of the; of him, to him","Genitive article (masc./neut.), or the weak pronoun 'to him' before a verb"],"καιρού":["ο καιρός","weather","Genitive singular: of the weather"],"άσχημη":["άσχημος","bad, ugly","Feminine, agrees with πρόγνωση"],"αν":["αν","if","With the imperfect it describes a hypothetical situation"],"έβρεχε":["βρέχει","it rained, it was raining","Imperfect, 3rd person singular (impersonal)"],"δεν":["δεν","not","Negation placed before the verb"],"θα":["θα","will; would","Future particle. Before an imperfect it means 'would'"],"μπορούσαμε":["μπορώ","we could","Imperfect, 1st person plural. 'θα μπορούσαμε' = we would be able"],"περπατήσουμε":["περπατώ","(that) we walk","Aorist subjunctive, 1st person plural, after να"],"στα":["σε","to, at, in (+ the)","Contraction of σε + τα: in the (neuter plural)"],"μονοπάτια":["το μονοπάτι","path, trail","Neuter plural"],"έτσι":["έτσι","so, thus","At the start of a sentence: 'so' / 'that's why'"],"αποφασίσαμε":["αποφασίζω","we decided","Aorist, 1st person plural"],"μείνουμε":["μένω","(that) we stay","Aorist subjunctive, 1st person plural, after να"],"στην":["σε","to, at, in (+ the)","Contraction of σε + την: in the (feminine)"],"πόλη":["η πόλη","city","Feminine noun, accusative singular"],"επισκεφτούμε":["επισκέπτομαι","(that) we visit","Aorist subjunctive, 1st person plural. Also written επισκεφθούμε"],"μουσείο":["το μουσείο","museum","Neuter noun, accusative singular"],"τέλος":["το τέλος","end","'στο τέλος' = in the end"],"περάσαμε":["περνάω","we spent; we passed","Aorist, 1st person plural. 'Περάσαμε ωραία' = we had a good time"],"ωραία":["ωραία","nicely, great","Adverb here. Also the neuter plural of ωραίος"],"παρόλο":["παρόλο που","although","Always used together with που"],"που":["που","that; which; who","Relative word. With παρόλο it means 'although'"],"κάναμε":["κάνω","we did","Imperfect, 1st person plural"],"αυτό":["αυτός","this, that","Neuter pronoun. 'αυτό που' = the thing that"],"πήρα":["παίρνω","I took; I got","Aorist, 1st person singular. 'Πήρα μήνυμα' = I got a message"],"μήνυμα":["το μήνυμα","message","Neuter noun, accusative singular"],"από":["από","from",""],"τον":["ο, η, το","the","Masculine accusative article, used after prepositions such as από"],"ιδιοκτήτη":["ο ιδιοκτήτης","owner, landlord","Masculine noun, accusative singular"],"διαμερίσματος":["το διαμέρισμα","apartment","Genitive singular: of the apartment"],"έγραψε":["γράφω","he/she wrote","Aorist, 3rd person singular"],"ότι":["ότι","that","Conjunction after verbs of saying and thinking"],"υδραυλικός":["ο υδραυλικός","plumber","Masculine noun, nominative singular"],"έρθει":["έρχομαι","(that) he/she comes","Aorist subjunctive, 3rd person singular. 'θα έρθει' = will come"],"την":["ο, η, το","the; her","Feminine accusative article, or the weak pronoun 'her' before a verb"],"πέμπτη":["η Πέμπτη","Thursday","'την Πέμπτη' = on Thursday"],"φτιάξει":["φτιάχνω","(that) he/she fixes","Aorist subjunctive, 3rd person singular. 'για να φτιάξει' = in order to fix"],"τη":["ο, η, το","the","Feminine accusative article, short form before a consonant"],"βρύση":["η βρύση","tap, faucet","Feminine noun, accusative singular"],"κουζίνας":["η κουζίνα","kitchen","Genitive singular: of the kitchen"],"δυστυχώς":["δυστυχώς","unfortunately",""],"εκείνη":["εκείνος","that","Feminine, agrees with ώρα"],"ώρα":["η ώρα","hour; time","'εκείνη την ώρα' = at that time"],"έχω":["έχω","I have","Present, 1st person singular"],"σημαντική":["σημαντικός","important","Feminine, agrees with συνάντηση"],"συνάντηση":["η συνάντηση","meeting","Feminine noun, accusative singular"],"μπορώ":["μπορώ","I can","Present, 1st person singular. Followed by να + subjunctive"],"μείνω":["μένω","(that) I stay","Aorist subjunctive, 1st person singular, after να"],"απάντησα":["απαντώ","I answered","Aorist, 1st person singular. 'Του απάντησα' = I answered him"],"προτιμούσα":["προτιμώ","I would prefer","Imperfect, 1st person singular. 'Θα προτιμούσα' = I would prefer (polite)"],"απόγευμα":["το απόγευμα","afternoon","'το απόγευμα' = in the afternoon"],"είναι":["είμαι","he/she/it is","Present, 3rd person singular"],"δυνατόν":["δυνατός","possible","Neuter singular. 'Αν είναι δυνατόν' = if possible"],"φτάνω":["φτάνω","I arrive","Present, 1st person singular"],"αεροδρόμιο":["το αεροδρόμιο","airport","Neuter noun, accusative singular"],"δύο":["δύο","two","Never changes form"],"ώρες":["η ώρα","hour","Feminine plural"],"πριν":["πριν","before","'πριν από' + noun = before"],"πτήση":["η πτήση","flight","Feminine noun, accusative singular"],"πρώτα":["πρώτα","first, at first","Adverb"],"γκισέ":["το γκισέ","counter, desk","Loanword (French guichet). Neuter, never changes"],"δείχνω":["δείχνω","I show","Present, 1st person singular"],"διαβατήριό":["το διαβατήριο","passport","Neuter noun, accusative. The accent moves because μου follows"],"υπάλληλος":["ο/η υπάλληλος","clerk, employee","Same form for men and women. Here: feminine, nominative"],"ρωτάει":["ρωτάω","he/she asks","Present, 3rd person singular. Also written ρωτά"],"έχετε":["έχω","you have","Present, 2nd person plural (polite 'you')"],"μεγάλη":["μεγάλος","big, large","Feminine singular, agrees with βαλίτσα"],"βαλίτσα":["η βαλίτσα","suitcase","Feminine noun, accusative singular"],"απαντάω":["απαντώ","I answer","Present, 1st person singular. Also written απαντώ"],"μόνο":["μόνο","only","Adverb"],"μικρή":["μικρός","small","Feminine singular, agrees with τσάντα"],"τσάντα":["η τσάντα","bag","Feminine noun, accusative singular"],"κάρτα":["η κάρτα","card","Feminine noun, accusative singular"],"επιβίβασης":["η επιβίβαση","boarding","Genitive singular. 'κάρτα επιβίβασης' = boarding pass"],"μετά":["μετά","then, after","Adverb here: 'then'"],"περνάω":["περνάω","I pass, I go through; I spend (time)","Present, 1st person singular"],"έλεγχο":["ο έλεγχος","check, control","Masculine noun, accusative singular"],"ασφαλείας":["η ασφάλεια","security, safety","Genitive singular. 'έλεγχος ασφαλείας' = security check"],"περιμένω":["περιμένω","I wait","Present, 1st person singular"],"αίθουσα":["η αίθουσα","hall, room","Feminine noun, accusative singular"],"αναχωρήσεων":["η αναχώρηση","departure","Genitive plural. 'αίθουσα αναχωρήσεων' = departures hall"],"πύλη":["η πύλη","gate","Feminine noun, nominative singular"],"ανοίγει":["ανοίγω","it opens","Present, 3rd person singular"],"σαράντα":["σαράντα","forty","Never changes form"],"λεπτά":["το λεπτό","minute","Neuter plural"],"οπότε":["οπότε","so, in which case","Conjunction"],"χρόνο":["ο χρόνος","time; year","Masculine noun, accusative singular"],"πιω":["πίνω","(that) I drink","Aorist subjunctive, 1st person singular, after να"],"έναν":["ένας, μία, ένα","a, one","Masculine accusative, agrees with καφέ"],"καφέ":["ο καφές","coffee","Masculine noun, accusative singular"],"βράδυ":["το βράδυ","evening","'το βράδυ' = in the evening"],"πήγαμε":["πηγαίνω","we went","Aorist, 1st person plural (of πάω)"],"ταβέρνα":["η ταβέρνα","taverna","Feminine noun, accusative singular"],"κοντά":["κοντά","near, close","Adverb. 'κοντά σε' = near"],"θάλασσα":["η θάλασσα","sea","Feminine noun, accusative singular"],"σερβιτόρος":["ο σερβιτόρος","waiter","Masculine noun, nominative singular"],"μας":["εγώ","us; our","Weak pronoun, 1st person plural: 'us' before a verb, 'our' after a noun"],"έφερε":["φέρνω","he/she brought","Aorist, 3rd person singular"],"μενού":["το μενού","menu","Loanword. Neuter, never changes"],"μπουκάλι":["το μπουκάλι","bottle","Neuter noun"],"νερό":["το νερό","water","Neuter noun"],"ήθελα":["θέλω","I wanted; I would like","Imperfect, 1st person singular. 'Θα ήθελα' = I would like (polite)"],"χωριάτικη":["χωριάτικος","village-style","Feminine. 'χωριάτικη σαλάτα' = Greek salad"],"ψητό":["ψητός","grilled, roasted","Neuter singular, agrees with ψάρι"],"ψάρι":["το ψάρι","fish","Neuter noun"],"είπα":["λέω","I said","Aorist, 1st person singular"],"προτίμησε":["προτιμώ","he/she preferred","Aorist, 3rd person singular"],"μουσακά":["ο μουσακάς","moussaka","Masculine noun, accusative singular"],"τρώει":["τρώω","he/she eats","Present, 3rd person singular"],"φαγητό":["το φαγητό","food, meal","Neuter noun"],"νόστιμο":["νόστιμος","tasty","Neuter singular, agrees with φαγητό"],"οι":["ο, η, το","the","Nominative plural article (masculine and feminine)"],"μερίδες":["η μερίδα","portion","Feminine plural"],"μεγάλες":["μεγάλος","big, large","Feminine plural, agrees with μερίδες"],"ζητήσαμε":["ζητώ","we asked for","Aorist, 1st person plural"],"λογαριασμό":["ο λογαριασμός","bill, account","Masculine noun, accusative singular"],"αφήσαμε":["αφήνω","we left","Aorist, 1st person plural"],"λίγα":["λίγος","a little, few","Neuter plural. 'λίγα χρήματα' = a little money"],"χρήματα":["τα χρήματα","money","Neuter plural, used like 'money'"],"φιλοδώρημα":["το φιλοδώρημα","tip, gratuity","'για φιλοδώρημα' = as a tip"],"οικογένειά":["η οικογένεια","family","Feminine noun. The accent moves because μου follows"],"αδελφό":["ο αδελφός","brother","Masculine noun, accusative. Also written αδερφός"],"αδελφή":["η αδελφή","sister","Feminine noun. Also written αδερφή"],"αδελφός":["ο αδελφός","brother","Masculine noun, nominative. Also written αδερφός"],"δάσκαλος":["ο δάσκαλος","teacher (primary school)","Masculine noun, nominative singular"],"ζει":["ζω","he/she lives","Present, 3rd person singular"],"χωριό":["το χωριό","village","Neuter noun"],"πάτρα":["η Πάτρα","Patras","City in the north-west of the Peloponnese"],"πιο":["πιο","more","Makes comparisons: 'πιο νέα' = younger"],"νέα":["νέος","young","Feminine singular here (the neuter plural means 'news')"],"μένα":["εγώ","me","Strong pronoun. 'από μένα' = than me"],"σπουδάζει":["σπουδάζω","he/she studies","Present, 3rd person singular. Used for university study"],"ιατρική":["η ιατρική","medicine (the subject)","Feminine noun, accusative singular"],"αθήνα":["η Αθήνα","Athens","Capital of Greece"],"γονείς":["ο γονέας","parent","Plural: οι γονείς = parents"],"μένουν":["μένω","they live; they stay","Present, 3rd person plural"],"ηράκλειο":["το Ηράκλειο","Heraklion","Largest city on Crete"],"τους":["ο, η, το","the; them, their","Masculine plural accusative article, or the weak pronoun 'them / their'"],"επισκέπτομαι":["επισκέπτομαι","I visit","Present, 1st person singular (middle form)"],"φορές":["η φορά","time (occasion)","Feminine plural. 'δύο φορές' = twice"],"γιαγιά":["η γιαγιά","grandmother","Feminine noun"],"μαγειρεύει":["μαγειρεύω","he/she cooks","Present, 3rd person singular"],"τα":["ο, η, το","the","Neuter plural article"],"καλύτερα":["καλύτερος","better, best","Neuter plural, agrees with φαγητά. With τα = the best"],"φαγητά":["το φαγητό","dish, food","Neuter plural"],"πεινάω":["πεινάω","I am hungry","Present, 1st person singular"],"χριστούγεννα":["τα Χριστούγεννα","Christmas","Always plural. 'τα Χριστούγεννα' = at Christmas"],"μαζευόμαστε":["μαζεύομαι","we gather","Present, 1st person plural (middle form)"],"όλοι":["όλος","all, everyone","Masculine plural nominative"],"περνάμε":["περνάω","we pass; we spend","Present, 1st person plural. 'Περνάμε υπέροχα' = we have a wonderful time"],"υπέροχα":["υπέροχος","wonderful","Neuter plural, used as an adverb: wonderfully"],"συγγνώμη":["η συγγνώμη","sorry; excuse me","Used to apologize or to get someone's attention"],"ξέρετε":["ξέρω","you know","Present, 2nd person plural (polite 'you')"],"πού":["πού","where","Question word"],"ναι":["ναι","yes",""],"πηγαίνετε":["πηγαίνω","go!","Imperative, present, 2nd person plural (polite)"],"ευθεία":["ευθεία","straight ahead","Adverb"],"μέχρι":["μέχρι","until, up to",""],"φανάρι":["το φανάρι","traffic light; lantern","Neuter noun"],"στρίψτε":["στρίβω","turn!","Imperative, aorist, 2nd person plural"],"δεξιά":["δεξιά","to the right","Adverb"],"συνεχίστε":["συνεχίζω","continue!","Imperative, aorist, 2nd person plural"],"πεντακόσια":["πεντακόσια","five hundred","Neuter, agrees with μέτρα"],"μέτρα":["το μέτρο","meter","Neuter plural"],"δείτε":["βλέπω","(you) see","Aorist subjunctive, 2nd person plural. 'Θα δείτε' = you will see"],"πλατεία":["η πλατεία","square (in a town)","Feminine noun, accusative singular"],"συντριβάνι":["το συντριβάνι","fountain","Neuter noun"],"βρίσκεται":["βρίσκομαι","it is located","Present, 3rd person singular (middle form)"],"απέναντι":["απέναντι","opposite, across","'απέναντι από' = across from"],"τράπεζα":["η τράπεζα","bank; table","Feminine noun, accusative singular"],"δίπλα":["δίπλα","next to","'δίπλα σε' = next to"],"πάρκο":["το πάρκο","park","Neuter noun"],"ευχαριστώ":["ευχαριστώ","thank you; I thank","Present, 1st person singular"],"βρω":["βρίσκω","(that) I find","Aorist subjunctive, 1st person singular. 'Θα το βρω' = I will find it"],"εύκολα":["εύκολα","easily","Adverb"],"καλησπέρα":["η καλησπέρα","good evening","Greeting used from the afternoon on"],"κράτηση":["η κράτηση","reservation","Feminine noun, accusative singular"],"όνομα":["το όνομα","name","'στο όνομα' = in the name of"],"παπαδοπούλου":["Παπαδοπούλου","Papadopoulou","A common Greek surname, here in the genitive"],"σας":["εσύ","you (polite or plural)","Weak pronoun. 'σας περιμένουμε' = we are expecting you"],"περιμένουμε":["περιμένω","we expect, we wait for","Present, 1st person plural"],"δωμάτιο":["το δωμάτιο","room","Neuter noun"],"θέα":["η θέα","view","Feminine noun. 'με θέα στη θάλασσα' = with a sea view"],"τρεις":["τρεις","three","Masculine and feminine form"],"νύχτες":["η νύχτα","night","Feminine plural"],"πρωινό":["το πρωινό","breakfast","Neuter noun"],"σερβίρεται":["σερβίρομαι","it is served","Present, 3rd person singular (passive form)"],"τις":["ο, η, το","the","Feminine accusative plural article"],"επτά":["επτά","seven","Also written εφτά"],"δέκα":["δέκα","ten",""],"υπάρχει":["υπάρχω","there is","Present, 3rd person singular"],"δωρεάν":["δωρεάν","free (of charge)","Never changes form"],"ίντερνετ":["το ίντερνετ","internet","Loanword. Neuter, never changes"],"βέβαια":["βέβαια","of course","Adverb"],"κωδικός":["ο κωδικός","code, password","Masculine noun, nominative singular"],"γραμμένος":["γραμμένος","written","Masculine, agrees with κωδικός"],"χαρτί":["το χαρτί","paper","Neuter noun"],"χρειαστείτε":["χρειάζομαι","(if) you need","Aorist subjunctive, 2nd person plural, after αν"],"καλέστε":["καλώ","call!","Imperative, aorist, 2nd person plural"],"ρεσεψιόν":["η ρεσεψιόν","reception desk","Loanword. Feminine, never changes"],"χθες":["χθες","yesterday","Also written χτες"],"πονόλαιμο":["ο πονόλαιμος","sore throat","Masculine noun, accusative singular"],"πονάει":["πονάω","it hurts","Present, 3rd person singular. 'με πονάει' = it hurts me"],"λίγο":["λίγος","a little","Neuter singular, used as an adverb"],"κεφάλι":["το κεφάλι","head","Neuter noun"],"φαρμακοποιός":["ο/η φαρμακοποιός","pharmacist","Same form for men and women. Here: feminine"],"ρώτησε":["ρωτάω","he/she asked","Aorist, 3rd person singular"],"πυρετό":["ο πυρετός","fever","Masculine noun, accusative singular"],"βήχω":["βήχω","I cough","Present, 1st person singular"],"νιώθω":["νιώθω","I feel","Present, 1st person singular"],"έδωσε":["δίνω","he/she gave","Aorist, 3rd person singular"],"παστίλιες":["η παστίλια","lozenge","Feminine plural"],"λαιμό":["ο λαιμός","throat, neck","Masculine noun, accusative singular"],"πρότεινε":["προτείνω","he/she suggested","Aorist, 3rd person singular"],"πίνω":["πίνω","(that) I drink","Present subjunctive, 1st person singular: drinking regularly"],"πολλά":["πολύς","many, a lot","Neuter plural"],"ζεστά":["ζεστός","hot","Neuter plural, agrees with ροφήματα"],"ροφήματα":["το ρόφημα","hot drink","Neuter plural"],"περάσει":["περνάω","(if) it passes","Aorist subjunctive, 3rd person singular, after αν"],"μέσα":["μέσα","inside; within","'μέσα σε' = within, in"],"μέρες":["η μέρα","day","Feminine plural"],"πρέπει":["πρέπει","must, it is necessary","Impersonal. 'θα πρέπει να πάω' = I will have to go"],"πάω":["πάω","(that) I go","Aorist subjunctive, 1st person singular (of πηγαίνω)"],"γιατρό":["ο γιατρός","doctor","Masculine noun, accusative singular"],"πλήρωσα":["πληρώνω","I paid","Aorist, 1st person singular"],"ευχαρίστησα":["ευχαριστώ","I thanked","Aorist, 1st person singular"],"ξεκουραστώ":["ξεκουράζομαι","(that) I rest","Aorist subjunctive, 1st person singular, after για να"],"εδώ":["εδώ","here","'εδώ και δύο χρόνια' = for the last two years"],"χρόνια":["ο χρόνος","year","'τα χρόνια' = years (neuter plural). 'δύο χρόνια' = two years"],"δουλεύω":["δουλεύω","I work","Present, 1st person singular"],"εβδομάδα":["η εβδομάδα","week","Feminine noun, accusative singular. 'την εβδομάδα' = per week"],"γλιτώνω":["γλιτώνω","I save; I escape","Present, 1st person singular"],"έχανα":["χάνω","I used to lose","Imperfect, 1st person singular"],"στους":["σε","in, at (+ the)","Contraction of σε + τους: in the (masculine plural)"],"δρόμους":["ο δρόμος","road, street","Masculine plural, accusative"],"περισσότερο":["περισσότερος","more","Masculine singular accusative, agrees with χρόνο"],"άλλη":["άλλος","other","Feminine singular. 'από την άλλη' = on the other hand"],"λείπει":["λείπω","is missing","Present, 3rd person singular. 'Μου λείπει' = I miss it"],"επαφή":["η επαφή","contact","Feminine noun, nominative singular"],"συναδέλφους":["ο συνάδελφος","colleague","Masculine plural, accusative"],"γραφείο":["το γραφείο","office; desk","Neuter noun"],"συζητάμε":["συζητώ","(that) we discuss","Present subjunctive, 1st person plural. 'Μπορούσαμε να συζητάμε' = we could discuss (repeatedly)"],"ιδέες":["η ιδέα","idea","Feminine plural"],"πάνω":["πάνω","above, on","'πάνω από' = above, over"],"ενώ":["ενώ","while, whereas",""],"οθόνη":["η οθόνη","screen","Feminine noun, accusative singular"],"όλα":["όλος","all, everything","Neuter plural. 'όλα' = everything"],"τυπικά":["τυπικός","formal","Neuter plural, agrees with όλα"],"γι":["για","for","Shortened form of για before a vowel. 'γι' αυτό' = that's why"],"προσπαθώ":["προσπαθώ","I try","Present, 1st person singular"],"βγαίνω":["βγαίνω","(that) I go out","Present subjunctive, 1st person singular, after να"],"έξω":["έξω","outside",""],"μεσημέρι":["το μεσημέρι","noon, lunchtime","'κάθε μεσημέρι' = every lunchtime"],"περπατάω":["περπατάω","(that) I walk","Present subjunctive, 1st person singular. Also written περπατώ"],"νομίζω":["νομίζω","I think","Present, 1st person singular"],"ισορροπία":["η ισορροπία","balance","Feminine noun, nominative singular"],"ανάμεσα":["ανάμεσα","between","'ανάμεσα σε' = between"],"καλύτερη":["καλύτερος","better, best","Feminine, agrees with λύση. With η = the best"],"λύση":["η λύση","solution","Feminine noun"],"πέρσι":["πέρσι","last year","Adverb"],"καλοκαίρι":["το καλοκαίρι","summer","'το καλοκαίρι' = in summer"],"πήραμε":["παίρνω","we took","Aorist, 1st person plural"],"πλοίο":["το πλοίο","ship, ferry","Neuter noun"],"πειραιά":["ο Πειραιάς","Piraeus","The port of Athens. Accusative after από"],"νάξο":["η Νάξος","Naxos","An island in the Cyclades. Accusative after για"],"ταξίδι":["το ταξίδι","trip, journey","Neuter noun"],"κράτησε":["κρατάω","it lasted","Aorist, 3rd person singular"],"σχεδόν":["σχεδόν","almost",""],"πέντε":["πέντε","five",""],"ήρεμη":["ήρεμος","calm","Feminine, agrees with θάλασσα"],"νοικιάσαμε":["νοικιάζω","we rented","Aorist, 1st person plural"],"μικρό":["μικρός","small","Neuter singular, agrees with αυτοκίνητο"],"αυτοκίνητο":["το αυτοκίνητο","car","Neuter noun"],"γυρίσαμε":["γυρίζω","we toured; we came back","Aorist, 1st person plural. 'Γυρίσαμε το νησί' = we toured the island"],"όλο":["όλος","whole, all","Neuter singular, agrees with νησί"],"νησί":["το νησί","island","Neuter noun"],"μέρα":["η μέρα","day","'κάθε μέρα' = every day"],"κολυμπούσαμε":["κολυμπάω","we used to swim","Imperfect, 1st person plural"],"διαφορετική":["διαφορετικός","different","Feminine, agrees with παραλία"],"παραλία":["η παραλία","beach","Feminine noun, accusative singular"],"τρώγαμε":["τρώω","we used to eat","Imperfect, 1st person plural"],"λιμάνι":["το λιμάνι","harbor, port","Neuter noun"],"ιδιοκτήτης":["ο ιδιοκτήτης","owner, landlord","Masculine noun, nominative singular"],"δωματίου":["το δωμάτιο","room","Genitive singular: of the room"],"έφερνε":["φέρνω","he/she used to bring","Imperfect, 3rd person singular"],"σύκα":["το σύκο","fig","Neuter plural"],"κήπο":["ο κήπος","garden","Masculine noun, accusative singular"],"έφτασε":["φτάνω","it arrived, it came","Aorist, 3rd person singular. 'Έφτασε η ώρα' = the time came"],"φύγουμε":["φεύγω","(that) we leave","Aorist subjunctive, 1st person plural, after να"],"θέλαμε":["θέλω","we wanted","Imperfect, 1st person plural"],"γυρίσουμε":["γυρίζω","(that) we go back","Aorist subjunctive, 1st person plural, after να"],"ήμασταν":["είμαι","we were","Imperfect, 1st person plural"],"παιδιά":["το παιδί","child","Neuter plural"],"περνούσαμε":["περνάω","we used to spend","Imperfect, 1st person plural"],"καλοκαίρια":["το καλοκαίρι","summer","Neuter plural"],"παππού":["ο παππούς","grandfather","Genitive singular. 'του παππού μας' = of our grandfather"],"ξυπνούσαμε":["ξυπνάω","we used to wake up","Imperfect, 1st person plural"],"νωρίς":["νωρίς","early",""],"τρέχαμε":["τρέχω","we used to run","Imperfect, 1st person plural"],"ποτάμι":["το ποτάμι","river","Neuter noun"],"παίξουμε":["παίζω","(that) we play","Aorist subjunctive, 1st person plural, after για να"],"άλλα":["άλλος","other","Neuter plural, agrees with παιδιά"],"έφτιαχνε":["φτιάχνω","he/she used to make","Imperfect, 3rd person singular"],"ζεστό":["ζεστός","warm, hot","Neuter singular, agrees with ψωμί"],"ψωμί":["το ψωμί","bread","Neuter noun"],"έλεγε":["λέω","he/she used to tell/say","Imperfect, 3rd person singular"],"παραμύθια":["το παραμύθι","fairy tale","Neuter plural"],"τότε":["τότε","then, back then",""],"τηλεόραση":["η τηλεόραση","television","Feminine noun, accusative singular"],"ούτε":["ούτε","neither, nor","'δεν… ούτε' = neither… nor"],"κινητά":["το κινητό","mobile phone","Neuter plural"],"βαριόμασταν":["βαριέμαι","we were bored","Imperfect, 1st person plural (middle form)"],"ποτέ":["ποτέ","never; ever","'δεν… ποτέ' = never"],"άδειο":["άδειος","empty","Neuter singular, agrees with σπίτι"],"όμως":["όμως","but, yet","'και όμως' = and yet"],"φορά":["η φορά","time (occasion)","'κάθε φορά που' = every time that"],"ακούω":["ακούω","I hear","Present, 1st person singular"],"γέλια":["το γέλιο","laugh, laughter","Neuter plural. 'τα γέλια μας' = our laughter"],"μακάρι":["μακάρι","I wish, if only","Expresses a wish. 'μακάρι να μπορούσα' = I wish I could"],"μπορούσα":["μπορώ","I could","Imperfect, 1st person singular"],"γυρίσω":["γυρίζω","(that) I go back","Aorist subjunctive, 1st person singular, after να"],"πίσω":["πίσω","back, behind",""],"έστω":["έστω","even, at least","'έστω και' = even if"],"μία":["ένας, μία, ένα","one, a","Feminine, the longer form of μια"],"ξεκίνησε":["ξεκινάω","it started","Aorist, 3rd person singular"],"καθυστέρηση":["η καθυστέρηση","delay","Feminine noun. 'με καθυστέρηση' = late, with a delay"],"επειδή":["επειδή","because","Conjunction"],"διευθυντής":["ο διευθυντής","director, manager","Masculine noun, nominative singular"],"είχε":["έχω","he/she had","Imperfect, 3rd person singular. 'είχε μείνει' = had stayed"],"μείνει":["μένω","(had) stayed","Fixed form used after έχω / είχε to build perfect tenses"],"κίνηση":["η κίνηση","traffic; movement","'στην κίνηση' = in traffic"],"παρουσιάσαμε":["παρουσιάζω","we presented","Aorist, 1st person plural"],"αποτελέσματα":["το αποτέλεσμα","result","Neuter plural"],"τελευταίου":["τελευταίος","last, latest","Genitive singular neuter, agrees with τριμήνου"],"τριμήνου":["το τρίμηνο","quarter (three months)","Genitive singular"],"οποία":["ο οποίος","which","'τα οποία' = which (neuter plural). Formal relative pronoun"],"περιμέναμε":["περιμένω","we expected","Imperfect, 1st person plural"],"ωστόσο":["ωστόσο","however, nevertheless","Formal linking word"],"μαρία":["η Μαρία","Maria","A woman's name"],"επισήμανε":["επισημαίνω","he/she pointed out","Aorist, 3rd person singular"],"δαπάνες":["η δαπάνη","expense","Feminine plural. Formal word"],"έχουν":["έχω","they have","Present, 3rd person plural. 'έχουν αυξηθεί' = have increased"],"αυξηθεί":["αυξάνομαι","(have) increased","Fixed form after έχω to build the perfect (passive)"],"σημαντικά":["σημαντικά","significantly","Adverb"],"μειώσουμε":["μειώνω","(that) we reduce","Aorist subjunctive, 1st person plural, after να"],"νίκος":["ο Νίκος","Nikos","A man's name"],"αναβάλουμε":["αναβάλλω","(that) we postpone","Aorist subjunctive, 1st person plural, after να"],"προσλήψεις":["η πρόσληψη","hiring","Feminine plural"],"εγώ":["εγώ","I","Subject pronoun, used for emphasis"],"υποστήριξα":["υποστηρίζω","I argued; I supported","Aorist, 1st person singular"],"επιβάρυνε":["επιβαρύνω","(would) burden","'θα επιβάρυνε' = would burden (3rd person singular)"],"ομάδα":["η ομάδα","team, group","Feminine noun, accusative singular"],"συζήτηση":["η συζήτηση","discussion","Feminine noun, accusative singular"],"καταλήξαμε":["καταλήγω","we ended up, we reached","Aorist, 1st person plural. 'Καταλήξαμε σε' = we reached (a conclusion)"],"συμβιβασμό":["ο συμβιβασμός","compromise","Masculine noun, accusative singular"],"ικανοποίησε":["ικανοποιώ","it satisfied","Aorist, 3rd person singular"],"όλους":["όλος","all, everyone","Masculine plural, accusative"],"πρακτικό":["το πρακτικό","minutes (of a meeting)","Neuter noun"],"συνάντησης":["η συνάντηση","meeting","Genitive singular: of the meeting"],"σταλεί":["στέλνω","(that) it is sent","Passive aorist subjunctive, 3rd person singular. 'Θα σταλεί' = will be sent"],"παρασκευή":["η Παρασκευή","Friday","'μέχρι την Παρασκευή' = by Friday"],"πολλοί":["πολύς","many","Masculine plural, nominative"],"άνθρωποι":["ο άνθρωπος","person","Plural: people"],"πιστεύουν":["πιστεύω","they believe","Present, 3rd person plural"],"κοινωνικής":["κοινωνικός","social","Feminine genitive singular"],"δικτύωσης":["η δικτύωση","networking","Genitive singular. 'μέσα κοινωνικής δικτύωσης' = social media"],"φέρνουν":["φέρνω","they bring","Present, 3rd person plural"],"πραγματικότητα":["η πραγματικότητα","reality","'στην πραγματικότητα' = in reality"],"μπροστά":["μπροστά","in front","'μπροστά σε' = in front of"],"χωρίς":["χωρίς","without","'χωρίς να' + subjunctive = without doing"],"μιλάμε":["μιλάω","(that) we speak","Present subjunctive, 1st person plural"],"κανέναν":["κανένας","no one, anyone","Masculine accusative"],"πρόβλημα":["το πρόβλημα","problem","Neuter noun"],"τεχνολογία":["η τεχνολογία","technology","Feminine noun"],"αυτή":["αυτός","this, she","Feminine. 'αυτή καθαυτή' = in itself"],"καθαυτή":["καθαυτός","in itself","'αυτή καθαυτή' = in itself"],"τρόπος":["ο τρόπος","way, manner","Masculine noun, nominative singular"],"οποίο":["ο οποίος","which","Masculine accusative. 'τον οποίο' = which (formal relative)"],"χρησιμοποιούμε":["χρησιμοποιώ","we use","Present, 1st person plural"],"περιορίζαμε":["περιορίζω","we limited","Imperfect, 1st person plural. 'Αν περιορίζαμε' = if we limited"],"ξοδεύουμε":["ξοδεύω","we spend (money or time)","Present, 1st person plural"],"κινητό":["το κινητό","mobile phone","Neuter noun, accusative singular"],"περισσότερες":["περισσότερος","more","Feminine plural, agrees with ευκαιρίες"],"ευκαιρίες":["η ευκαιρία","opportunity","Feminine plural"],"πραγματικές":["πραγματικός","real","Feminine plural, agrees with συζητήσεις"],"συζητήσεις":["η συζήτηση","conversation, discussion","Feminine plural"],"παρ":["παρά","despite","Shortened form of παρά. 'παρ' όλα αυτά' = nevertheless"],"αυτά":["αυτός","these, those","Neuter plural"],"μπορούμε":["μπορώ","we can","Present, 1st person plural"],"αγνοήσουμε":["αγνοώ","(that) we ignore","Aorist subjunctive, 1st person plural, after να"],"πλατφόρμες":["η πλατφόρμα","platform","Feminine plural"],"αυτές":["αυτός","these","Feminine plural"],"βοηθούν":["βοηθάω","they help","Present, 3rd person plural"],"ανθρώπους":["ο άνθρωπος","person","Accusative plural: people"],"βρουν":["βρίσκω","(that) they find","Aorist subjunctive, 3rd person plural, after να"],"δουλειά":["η δουλειά","work, job","Feminine noun, accusative singular"],"ή":["ή","or",""],"μείνουν":["μένω","(that) they stay","Aorist subjunctive, 3rd person plural, after να"],"δικούς":["δικός","own; loved ones","'οι δικοί μου / τους' = my / their own people"],"ίσως":["ίσως","perhaps","Used with να + subjunctive: 'ίσως να είναι'"],"μάθουμε":["μαθαίνω","(that) we learn","Aorist subjunctive, 1st person plural, after να"],"μέτρο":["το μέτρο","measure, moderation","'με μέτρο' = in moderation"],"γινόμαστε":["γίνομαι","(that) we become","Present subjunctive, 1st person plural, after χωρίς να"],"εξαρτημένοι":["εξαρτημένος","dependent, addicted","Masculine plural, nominative"],"πόλεις":["η πόλη","city","Feminine plural"],"παράγουν":["παράγω","they produce","Present, 3rd person plural"],"τεράστιες":["τεράστιος","huge","Feminine plural, agrees with ποσότητες"],"ποσότητες":["η ποσότητα","quantity","Feminine plural"],"σκουπιδιών":["τα σκουπίδια","rubbish, garbage","Genitive plural: of rubbish"],"περισσότερα":["περισσότερος","most, more","Neuter plural. 'τα περισσότερα' = most of them"],"μπορούσαν":["μπορώ","they could","Imperfect, 3rd person plural. 'Θα μπορούσαν' = they could, they would be able"],"ανακυκλωθούν":["ανακυκλώνω","(that) they be recycled","Passive aorist subjunctive, 3rd person plural, after να"],"ανακύκλωση":["η ανακύκλωση","recycling","Feminine noun, nominative singular"],"όχι":["όχι","no, not","'όχι μόνο… αλλά' = not only… but"],"μειώνει":["μειώνω","it reduces","Present, 3rd person singular"],"ρύπανση":["η ρύπανση","pollution","Feminine noun, accusative singular"],"εξοικονομεί":["εξοικονομώ","it saves","Present, 3rd person singular"],"πολύτιμες":["πολύτιμος","valuable","Feminine plural, agrees with ύλες"],"πρώτες":["πρώτος","first","Feminine plural. 'πρώτες ύλες' = raw materials"],"ύλες":["η ύλη","material, matter","Feminine plural"],"πολλές":["πολύς","many","Feminine plural"],"γειτονιές":["η γειτονιά","neighborhood","Feminine plural"],"υπάρχουν":["υπάρχω","there are","Present, 3rd person plural"],"πια":["πια","by now, anymore","'δεν… πια' = no longer. Here: 'now'"],"ξεχωριστοί":["ξεχωριστός","separate","Masculine plural, agrees with κάδοι"],"κάδοι":["ο κάδος","bin, container","Masculine plural"],"γυαλί":["το γυαλί","glass","Neuter noun"],"πλαστικό":["το πλαστικό","plastic","Neuter noun"],"αρκετοί":["αρκετός","quite a few, enough","Masculine plural"],"κάτοικοι":["ο κάτοικος","resident","Masculine plural"],"χρησιμοποιούν":["χρησιμοποιώ","they use","Present, 3rd person plural"],"σωστά":["σωστά","correctly","Adverb"],"αποτέλεσμα":["το αποτέλεσμα","result","'με αποτέλεσμα να' = with the result that"],"χαλάει":["χαλάω","it spoils, it breaks","Present, 3rd person singular (here after να)"],"περιεχόμενο":["το περιεχόμενο","content","Neuter noun"],"ειδικοί":["ο ειδικός","expert","Masculine plural, nominative"],"υποστηρίζουν":["υποστηρίζω","they maintain, they support","Present, 3rd person plural"],"χρειάζεται":["χρειάζομαι","it is needed","Present, 3rd person singular. Impersonal: 'χρειάζεται' = is needed"],"περισσότερη":["περισσότερος","more","Feminine singular, agrees with ενημέρωση"],"ενημέρωση":["η ενημέρωση","information, awareness","Feminine noun, nominative singular"],"αυστηρότερα":["αυστηρός","stricter","Comparative, neuter plural, agrees with πρόστιμα"],"πρόστιμα":["το πρόστιμο","fine (penalty)","Neuter plural"],"όσους":["όσος","those who, as many as","Masculine plural accusative. 'για όσους' = for those who"],"συμμορφώνονται":["συμμορφώνομαι","they comply","Present, 3rd person plural (middle form)"],"αλλάξουμε":["αλλάζω","(if) we change","Aorist subjunctive, 1st person plural, after αν"],"νοοτροπία":["η νοοτροπία","mentality","Feminine noun, accusative singular"],"τώρα":["τώρα","now",""],"κληρονομήσουν":["κληρονομώ","they will inherit","Aorist subjunctive, 3rd person plural. 'Θα κληρονομήσουν' = will inherit"],"πλανήτη":["ο πλανήτης","planet","Masculine noun, accusative singular"],"γεμάτο":["γεμάτος","full","Masculine accusative, agrees with πλανήτη. 'γεμάτος από / με' = full of"],"απορρίμματα":["το απόρριμμα","waste, refuse","Neuter plural"],"τουρισμός":["ο τουρισμός","tourism","Masculine noun, nominative singular"],"αποτελεί":["αποτελώ","it constitutes","Present, 3rd person singular. Formal way of saying 'is'"],"βασικότερους":["βασικός","basic, fundamental","'ένας από τους βασικότερους' = one of the most fundamental"],"πυλώνες":["ο πυλώνας","pillar","Masculine plural, accusative"],"ελληνικής":["ελληνικός","Greek","Feminine genitive singular, agrees with οικονομίας"],"οικονομίας":["η οικονομία","economy","Genitive singular: of the economy"],"εκατομμύρια":["το εκατομμύριο","million","Neuter plural"],"επισκέπτες":["ο επισκέπτης","visitor","Masculine plural"],"έρχονται":["έρχομαι","they come","Present, 3rd person plural"],"απολαύσουν":["απολαμβάνω","(that) they enjoy","Aorist subjunctive, 3rd person plural, after για να"],"ήλιο":["ο ήλιος","sun","Masculine noun, accusative singular"],"πολιτισμό":["ο πολιτισμός","culture, civilization","Masculine noun, accusative singular"],"δημιουργεί":["δημιουργώ","it creates","Present, 3rd person singular"],"χιλιάδες":["η χιλιάδα","thousand","Feminine plural: χιλιάδες = thousands"],"θέσεις":["η θέση","position, place","Feminine plural. 'θέσεις εργασίας' = jobs"],"εργασίας":["η εργασία","work","Genitive singular"],"κυρίως":["κυρίως","mainly",""],"περιοχές":["η περιοχή","area, region","Feminine plural"],"όπου":["όπου","where","Relative word"],"άλλες":["άλλος","other","Feminine plural"],"επιλογές":["η επιλογή","choice, option","Feminine plural"],"πλευρά":["η πλευρά","side","'από την άλλη πλευρά' = on the other hand"],"υπερβολική":["υπερβολικός","excessive","Feminine, agrees with συγκέντρωση"],"συγκέντρωση":["η συγκέντρωση","concentration","Feminine noun, nominative singular"],"τουριστών":["ο τουρίστας","tourist","Genitive plural"],"επιβαρύνει":["επιβαρύνω","it burdens","Present, 3rd person singular"],"νησιά":["το νησί","island","Neuter plural"],"ανεβάζει":["ανεβάζω","it raises","Present, 3rd person singular"],"των":["ο, η, το","of the","Genitive plural article, all genders"],"ενοικίων":["το ενοίκιο","rent","Genitive plural"],"ντόπιοι":["ντόπιος","local (person)","Masculine plural. 'οι ντόπιοι' = the locals"],"δυσκολεύονται":["δυσκολεύομαι","they struggle","Present, 3rd person plural (middle form)"],"πλέον":["πλέον","now, by now","Also means 'no longer' with δεν"],"στον":["σε","in, at (+ the)","Contraction of σε + τον: in the (masculine)"],"τόπο":["ο τόπος","place","Masculine noun, accusative singular"],"γεννήθηκαν":["γεννιέμαι","they were born","Aorist, 3rd person plural (passive form)"],"πρόκληση":["η πρόκληση","challenge","Feminine noun, nominative singular"],"βρεθεί":["βρίσκομαι","(that) it be found","Passive aorist subjunctive, 3rd person singular, after να"],"προστατεύει":["προστατεύω","it protects","Present, 3rd person singular"],"τόσο":["τόσο","so much","'τόσο… όσο και' = both… and"],"περιβάλλον":["το περιβάλλον","environment","Neuter noun"],"όσο":["όσο","as much as","'τόσο… όσο και' = both… and"],"κατοίκους":["ο κάτοικος","resident","Masculine plural, accusative"],"περισσότερους":["περισσότερος","most, more","Masculine plural accusative. 'για τους περισσότερους' = for most people"],"έλληνες":["ο Έλληνας","Greek (person)","Plural: οι Έλληνες"],"πάσχα":["το Πάσχα","Easter","Neuter noun, never changes"],"μεγαλύτερη":["μεγάλος","bigger, biggest","Feminine comparative. With η = the biggest"],"γιορτή":["η γιορτή","holiday, celebration","Feminine noun"],"χρονιάς":["η χρονιά","year","Genitive singular: of the year"],"ακόμα":["ακόμα","still, even","'ακόμα και' = even"],"εκκλησίες":["η εκκλησία","church","Feminine plural"],"στολίζονται":["στολίζομαι","they are decorated","Present, 3rd person plural (passive form)"],"λουλούδια":["το λουλούδι","flower","Neuter plural"],"γίνεται":["γίνομαι","it takes place; it becomes","Present, 3rd person singular"],"περιφορά":["η περιφορά","procession","Feminine noun, nominative singular"],"επιταφίου":["ο Επιτάφιος","the Epitaphios (Good Friday bier)","Genitive singular"],"μεσάνυχτα":["τα μεσάνυχτα","midnight","Neuter plural"],"μαζεύονται":["μαζεύομαι","they gather","Present, 3rd person plural (middle form)"],"αναμμένες":["αναμμένος","lit, switched on","Feminine plural, agrees with λαμπάδες"],"λαμπάδες":["η λαμπάδα","candle (large)","Feminine plural"],"περιμένουν":["περιμένω","they wait","Present, 3rd person plural"],"χριστός":["ο Χριστός","Christ","Nominative singular"],"ανέστη":["ανέστη","(he) is risen","Old-style form. 'Χριστός Ανέστη' = Christ is risen"],"επόμενη":["επόμενος","next","Feminine singular, agrees with μέρα"],"οικογένεια":["η οικογένεια","family","Feminine noun, nominative singular"],"μαζεύεται":["μαζεύομαι","it gathers","Present, 3rd person singular (middle form)"],"γύρω":["γύρω","around","'γύρω από' = around"],"τραπέζι":["το τραπέζι","table","Neuter noun"],"αρνί":["το αρνί","lamb","Neuter noun"],"ψήνεται":["ψήνομαι","it is roasted","Present, 3rd person singular (passive form)"],"αργά":["αργά","slowly; late","Adverb"],"σούβλα":["η σούβλα","spit (for roasting)","Feminine noun, accusative singular"],"παλιότερα":["παλιότερα","in the past, formerly","Adverb"],"νοικοκυρές":["η νοικοκυρά","housewife","Feminine plural"],"έβαφαν":["βάφω","they used to dye","Imperfect, 3rd person plural"],"κόκκινα":["κόκκινος","red","Neuter plural, agrees with αυγά"],"αυγά":["το αυγό","egg","Neuter plural"],"τσούγκριζαν":["τσουγκρίζω","they used to crack (eggs together)","Imperfect, 3rd person plural"],"ενθουσιασμό":["ο ενθουσιασμός","enthusiasm","Masculine noun, accusative singular"],"όποιο":["όποιος","whichever","Neuter singular"],"αυγό":["το αυγό","egg","Neuter singular"],"σπάσει":["σπάω","(if) it breaks","Aorist subjunctive, 3rd person singular"],"λένε":["λέω","they say","Present, 3rd person plural"],"φέρνει":["φέρνω","it brings","Present, 3rd person singular"],"τύχη":["η τύχη","luck","Feminine noun, accusative singular"],"αυτόν":["αυτός","him, that person","Masculine accusative. 'σε αυτόν που' = to the one who"],"κρατάει":["κρατάω","he/she holds","Present, 3rd person singular"]};
 /*ENDDATA*/
 
 (function(){
@@ -512,8 +888,10 @@ function playAll(){
 /* ---------- reading view ---------- */
 function renderChips(){
   var box = $("#chips"); box.replaceChildren();
+  var lastLvl = "";
   TEXTS.forEach(function(t, i){
-    var b = el("button", "chip", t.title);
+    if (t.level !== lastLvl) { lastLvl = t.level; box.append(el("div", "lvl", t.level + (t.level === "A2" ? " · simpler" : t.level === "B2" ? " · advanced" : " · intermediate"))); }
+    var b = el("button", "chip" + (doneSet[t.id] ? " done" : ""), t.title);
     b.setAttribute("aria-pressed", String(cur === i));
     b.lang = "el";
     b.onclick = function(){ selectText(i); };
@@ -524,8 +902,22 @@ function renderChips(){
   c.onclick = function(){ selectText(-1); };
   box.append(c);
 }
+var doneSet = {};
+try { JSON.parse(ls.get("gr.done", "[]")).forEach(function(id){ doneSet[id] = 1; }); } catch (e) {}
+function updateNext(){
+  var b = $("#nextBtn"); if (!b) return;
+  if (cur < 0) { b.parentNode.hidden = true; return; }
+  b.parentNode.hidden = false;
+  b.textContent = cur < TEXTS.length - 1 ? "Mark done · next text →" : "Mark done ✓";
+  b.onclick = function(){
+    doneSet[TEXTS[cur].id] = 1; ls.set("gr.done", JSON.stringify(Object.keys(doneSet)));
+    selectText(cur < TEXTS.length - 1 ? cur + 1 : cur);
+    window.scrollTo(0, 0);
+  };
+}
 function selectText(i){
   stopAudio(); closeSheet();
+  if (i >= 0) ls.set("gr.last", TEXTS[i].id);
   cur = i; editing = (i === -1 && !custom);
   renderAll();
 }
@@ -803,7 +1195,7 @@ function setView(v){
   if (v === "words") { stopAudio(); closeSheet(); renderWords(); }
 }
 var view = "read";
-function renderAll(){ renderChips(); renderReader(); updatePlayAll(); }
+function renderAll(){ renderChips(); renderReader(); updateNext(); updatePlayAll(); }
 
 /* ---------- wiring ---------- */
 $("#tabRead").onclick = function(){ setView("read"); };
@@ -848,6 +1240,7 @@ if ("speechSynthesis" in window) {
   window.speechSynthesis.addEventListener && window.speechSynthesis.addEventListener("voiceschanged", function(){ pickVoice(); audioNote(); });
 }
 audioNote();
+(function(){ var id = ls.get("gr.last", ""); TEXTS.forEach(function(t, i){ if (t.id === id) cur = i; }); })();
 renderAll();
 renderWords();
 
