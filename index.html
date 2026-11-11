@@ -117,6 +117,11 @@ h1{font-size:1.15rem;font-weight:600;margin:0;letter-spacing:.01em}
 .wrow .meta{min-width:0}
 .badge{display:inline-block;margin-left:8px;font-family:var(--font-ui);font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 7px;vertical-align:middle}
 .status{margin:10px 0 0;font-size:.88rem;color:var(--muted)}
+.voicebox{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0;background:var(--surface)}
+.voicebox summary{font-weight:600}
+.voicebox label{display:grid;gap:4px;margin:10px 0;font-size:.85rem;color:var(--muted)}
+.voicebox input{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);width:100%}
+.w.speaking{background:var(--accent-soft);border-bottom-color:var(--accent)}
 .manual{display:grid;gap:8px;margin-top:10px}
 .manual input{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);width:100%}
 @media (prefers-reduced-motion: no-preference){
@@ -157,7 +162,18 @@ h1{font-size:1.15rem;font-weight:600;margin:0;letter-spacing:.01em}
         <button class="btn" id="trToggle" aria-pressed="false">Translations</button>
         <button class="btn" id="editCustom" hidden>Edit text</button>
       </div>
-      <p class="note" id="audioNote" hidden></p>
+            <details class="voicebox" id="voiceBox">
+        <summary>Studio voice (ElevenLabs)</summary>
+        <p class="note">Downloads natural recordings of every built-in Greek sentence to this phone, with word-by-word highlighting while they play. It needs internet once and uses about 7,300 characters of your ElevenLabs allowance. Your key stays on this phone.</p>
+        <label>API key<input id="xiKey" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <label>Voice ID<input id="xiVoice" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <div class="controls">
+          <button class="btn" id="xiGo" type="button">Download voice</button>
+          <button class="btn" id="xiClear" type="button">Remove recordings</button>
+        </div>
+        <p class="note" id="xiStatus"></p>
+      </details>
+<p class="note" id="audioNote" hidden></p>
       <div class="drill">
         <p class="note">Listen-and-repeat drill, in the style of Glossika: you hear the English sentence, then the Greek several times, with a pause each time for you to say it aloud.</p>
         <div class="controls">
@@ -771,6 +787,7 @@ var panel = null, reqId = 0;
 var sampleFn = null, col = null, storeState = "loading";
 var voice = null, playToken = 0, playingIdx = -1, playingAll = false;
 var drilling = false;
+var grClip = null, grStop = null;   // set by the offline build when recorded voice clips exist
 var reps = parseInt(ls.get("gr.reps", "3"), 10) || 3;
 var enFirst = ls.get("gr.enfirst", "1") === "1";
 var shortFirst = ls.get("gr.short", "1") === "1";
@@ -792,6 +809,7 @@ function audioNote(){
   else n.hidden = true;
 }
 function say(text, onDone, opts){
+  if (!(opts && opts.english) && grClip && grClip(text, onDone)) return;
   if (!("speechSynthesis" in window)) { if (onDone) onDone(true); return; }
   var synth = window.speechSynthesis;
   synth.cancel();
@@ -815,6 +833,7 @@ function updatePlayAll(){
 }
 function stopAudio(){
   playToken++; playingAll = false; drilling = false;
+  if (grStop) grStop();
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   markPlaying(-1); updatePlayAll(); updateDrillBtn(); drillStatus("");
 }
@@ -1286,6 +1305,171 @@ storeNote("Your words are stored on this phone only. Export now and then so you 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
 }
+
+/* ---------- recorded voice (ElevenLabs), stored on this device ---------- */
+(function voiceClips(){
+  var DB = "gr-clips", STORE = "c";
+  var clips = {};             // text -> {url, words}
+  var db = null, cur = null, raf = 0, hlEls = [];
+  var xiKey = $("#xiKey"), xiVoice = $("#xiVoice"), xiGo = $("#xiGo"), xiClear = $("#xiClear"), xiStatus = $("#xiStatus");
+  xiKey.value = ls.get("gr.xi.key", ""); xiVoice.value = ls.get("gr.xi.voice", "");
+  function status(t){ xiStatus.textContent = t || ""; }
+  function open(){
+    return new Promise(function(res, rej){
+      if (!window.indexedDB) { rej(); return; }
+      var r = indexedDB.open(DB, 1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore(STORE, { keyPath: "text" }); };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  function all(){
+    return new Promise(function(res){
+      var out = [], tx = db.transaction(STORE, "readonly").objectStore(STORE).openCursor();
+      tx.onsuccess = function(){ var c = tx.result; if (c) { out.push(c.value); c.continue(); } else res(out); };
+      tx.onerror = function(){ res(out); };
+    });
+  }
+  function put(rec){
+    return new Promise(function(res, rej){
+      var tx = db.transaction(STORE, "readwrite"); tx.objectStore(STORE).put(rec);
+      tx.oncomplete = res; tx.onerror = function(){ rej(tx.error); };
+    });
+  }
+  function wipe(){
+    return new Promise(function(res){
+      var tx = db.transaction(STORE, "readwrite"); tx.objectStore(STORE).clear();
+      tx.oncomplete = res; tx.onerror = res;
+    });
+  }
+  function count(){ return Object.keys(clips).length; }
+  function sentences(){
+    var seen = {}, out = [];
+    TEXTS.forEach(function(t){ t.sentences.forEach(function(s){ if (!seen[s.el]) { seen[s.el] = 1; out.push(s.el); } }); });
+    return out;
+  }
+  function load(){
+    return all().then(function(recs){
+      var v = xiVoice.value.trim();
+      Object.keys(clips).forEach(function(k){ try { URL.revokeObjectURL(clips[k].url); } catch (e) {} });
+      clips = {};
+      recs.forEach(function(r){ if (r.voice === v && r.blob) clips[r.text] = { url: URL.createObjectURL(r.blob), words: r.words }; });
+      report();
+    });
+  }
+  function report(){
+    var n = count(), tot = sentences().length;
+    status(n ? ("Recorded voice ready for " + n + " of " + tot + " sentences. Pasted texts still use the phone's voice.") : "");
+  }
+  /* ----- playback with word highlighting ----- */
+  function clearHl(){
+    cancelAnimationFrame(raf); raf = 0;
+    hlEls.forEach(function(e){ e.classList.remove("speaking"); }); hlEls = [];
+  }
+  function stop(){
+    clearHl();
+    if (cur) { var a = cur; cur = null; a.onended = a.onerror = null; try { a.pause(); } catch (e) {} }
+  }
+  grStop = stop;
+  grClip = function(text, onDone){
+    var c = clips[text];
+    if (!c) return false;
+    stop();
+    var a = new Audio(c.url);
+    cur = a;
+    try { a.playbackRate = Math.max(0.5, Math.min(1.5, rate)); a.preservesPitch = true; a.webkitPreservesPitch = true; } catch (e) {}
+    var row = document.querySelectorAll(".s")[playingIdx];
+    var ws = row ? Array.prototype.slice.call(row.querySelectorAll(".w")) : [];
+    var words = c.words && c.words.length === ws.length ? c.words : null;
+    function tick(){
+      if (cur !== a) return;
+      if (words) {
+        var t = a.currentTime, idx = -1;
+        for (var k = 0; k < words.length; k++) { if (t >= words[k][0] - 0.03) idx = k; }
+        hlEls.forEach(function(e){ e.classList.remove("speaking"); }); hlEls = [];
+        if (idx >= 0 && t <= words[idx][1] + 0.4) { ws[idx].classList.add("speaking"); hlEls = [ws[idx]]; }
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    a.onended = function(){ if (cur !== a) return; stop(); if (onDone) onDone(false); };
+    a.onerror = function(){ if (cur !== a) return; stop(); if (onDone) onDone(true); };
+    var p = a.play();
+    if (p && p.catch) p.catch(function(){ if (cur !== a) return; stop(); if (onDone) onDone(true); });
+    raf = requestAnimationFrame(tick);
+    return true;
+  };
+  /* ----- download ----- */
+  function b64blob(b64, type){
+    var bin = atob(b64), n = bin.length, u = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
+    return new Blob([u], { type: type });
+  }
+  function timings(text, al){
+    if (!al || !al.characters || al.characters.length !== text.length) return null;
+    var out = [], m, re = /[\p{L}\p{M}]+/gu;
+    while ((m = re.exec(text))) {
+      var s = al.character_start_times_seconds[m.index], e = al.character_end_times_seconds[m.index + m[0].length - 1];
+      if (typeof s !== "number" || typeof e !== "number") return null;
+      out.push([s, e]);
+    }
+    return out;
+  }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function fetchClip(text, key, voice, tries){
+    return fetch("https://api.elevenlabs.io/v1/text-to-speech/" + encodeURIComponent(voice) + "/with-timestamps?output_format=mp3_44100_64", {
+      method: "POST",
+      headers: { "xi-api-key": key, "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text, model_id: "eleven_multilingual_v2" })
+    }).then(function(r){
+      if (r.ok) return r.json();
+      return r.text().then(function(body){
+        var msg = ""; try { var j = JSON.parse(body); msg = (j.detail && (j.detail.message || j.detail.status)) || (typeof j.detail === "string" ? j.detail : ""); } catch (e) {}
+        if (r.status === 429 && tries < 3) return wait(3000 * (tries + 1)).then(function(){ return fetchClip(text, key, voice, tries + 1); });
+        var err = new Error(msg || ("HTTP " + r.status)); err.http = r.status; throw err;
+      });
+    });
+  }
+  var busy = false;
+  xiGo.onclick = function(){
+    if (busy) return;
+    var key = xiKey.value.trim(), voice = xiVoice.value.trim();
+    if (!key || !voice) { status("Enter your API key and a voice ID first."); return; }
+    if (!navigator.onLine) { status("You are offline. Connect to the internet and try again."); return; }
+    ls.set("gr.xi.key", key); ls.set("gr.xi.voice", voice);
+    busy = true; xiGo.disabled = true;
+    load().then(function(){
+      var todo = sentences().filter(function(t){ return !clips[t]; });
+      var done = 0, total = todo.length, failed = null, next = 0;
+      if (!total) { status("Everything is already downloaded."); return; }
+      function worker(){
+        if (failed || next >= todo.length) return Promise.resolve();
+        var text = todo[next++];
+        return fetchClip(text, key, voice, 0).then(function(j){
+          var blob = b64blob(j.audio_base64, "audio/mpeg");
+          return put({ text: text, voice: voice, blob: blob, words: timings(text, j.alignment) }).then(function(){
+            clips[text] = { url: URL.createObjectURL(blob), words: timings(text, j.alignment) };
+            done++; status("Downloading… " + done + " of " + total);
+          });
+        }).then(worker, function(e){ failed = failed || e; });
+      }
+      status("Downloading… 0 of " + total);
+      return Promise.all([worker(), worker()]).then(function(){
+        if (failed) {
+          var hint = failed.http === 401 ? " Check the API key, or that the key has text-to-speech access, or that your monthly allowance is not used up." :
+                     failed.http === 402 || /paid|library/i.test(failed.message) ? " This voice may need a paid plan. Pick a voice from your own voice list." :
+                     failed.http === 404 || /voice/i.test(failed.message) ? " Check the voice ID." : "";
+          status("Stopped after " + done + " of " + total + ". " + failed.message + "." + hint + " Tap Download again to resume.");
+        } else status("Done. Recorded voice is ready for " + count() + " sentences, including offline.");
+      });
+    }).catch(function(){ status("This browser could not store the recordings."); }).then(function(){ busy = false; xiGo.disabled = false; });
+  };
+  xiClear.onclick = function(){
+    if (!db) return;
+    stop(); wipe().then(function(){ clips = {}; status("Recordings removed. The phone's voice will be used."); });
+  };
+  xiVoice.onchange = function(){ ls.set("gr.xi.voice", xiVoice.value.trim()); if (db) load(); };
+  open().then(function(d){ db = d; return load(); }).catch(function(){ status(""); });
+})();
 })();
 </script>
 </body>
